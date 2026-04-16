@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Coach — Argue. Think. Win.</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #07070B;
+            --surface: #0F0F17;
+            --border: rgba(255, 255, 255, 0.06);
+            --accent: #E8512A;
+            --accent-2: #9B72F5;
+            --text: #EDEDEC;
+            --muted: #6B6B7A;
+            
+            --ff-display: 'Instrument Serif', serif;
+            --ff-ui: 'DM Sans', sans-serif;
+            
+            --grid-line: rgba(255, 255, 255, 0.02);
+            --section-pad: 140px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none !important; /* Managed by JS dot */
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--ff-ui);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* --- Global Noise & BG Blobs --- */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        .bg-blobs {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            width: 60vw;
+            height: 60vw;
+            border-radius: 50%;
+            filter: blur(120px);
+            animation: breath 8s infinite ease-in-out;
+        }
+
+        .blob-1 {
+            background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+            bottom: -10%;
+            left: -10%;
+            opacity: 0.1;
+        }
+
+        .blob-2 {
+            background: radial-gradient(circle, var(--accent-2) 0%, transparent 70%);
+            top: -10%;
+            right: -10%;
+            opacity: 0.08;
+            animation-delay: -4s;
+        }
+
+        @keyframes breath {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px);
+            background-size: 100% 80px;
+            pointer-events: none;
+        }
+
+        /* --- Cursor --- */
+        #custom-cursor {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            mix-blend-mode: difference;
+            transition: transform 0.1s ease-out;
+            transform: translate(-50%, -50%);
+        }
+
+        /* --- Utilities --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .caption {
+            font-size: 0.8rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 30px rgba(232, 81, 42, 0.4);
+        }
+
+        .btn-ghost {
+            color: var(--text);
+            padding: 14px 28px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .btn-ghost:hover {
+            opacity: 0.7;
+        }
+
+        /* --- Navbar --- */
+        nav {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 48px);
+            max-width: 1100px;
+            height: 64px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: rgba(15, 15, 23, 0.5);
+            backdrop-filter: blur(20px);
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            transition: all 0.4s ease;
+        }
+
+        nav.scrolled {
+            top: 12px;
+            background: rgba(7, 7, 11, 0.9);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            font-weight: 800;
+            letter-spacing: 3px;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            background: #12121A;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-size: 0.75rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+        }
+
+        .nav-cta {
+            background: var(--accent);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 0.83rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .nav-cta:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 20px rgba(232, 81, 42, 0.3);
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 100px;
+            position: relative;
+        }
+
+        .hero-tag {
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            color: var(--muted);
+            margin-bottom: 48px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero-tag span {
+            color: var(--accent);
+        }
+
+        .hero-title {
+            font-family: var(--ff-display);
+            font-size: var(--hero-size);
+            line-height: 0.85;
+            letter-spacing: -0.02em;
+            margin-bottom: 40px;
+            pointer-events: none;
+        }
+
+        .hero-word {
+            display: block;
+            opacity: 0;
+            filter: blur(12px);
+            transform: translateY(20px);
+            font-style: italic;
+        }
+
+        .word-argue { color: rgba(255, 255, 255, 0.95); transform: translateX(-40px); animation: blurUp 1.2s forwards 0s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .word-think { 
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: blurUp 1.2s forwards 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .word-win { color: var(--accent); transform: translateX(80px); animation: blurUp 1.2s forwards 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+        @keyframes blurUp {
+            to {
+                opacity: 1;
+                filter: blur(0);
+                transform: translateY(0);
+            }
+        }
+
+        .hero-subtext {
+            max-width: 480px;
+            color: var(--muted);
+            font-size: 1.1rem;
+            margin-bottom: 56px;
+            animation: fadeIn 1s forwards 0.8s;
+            opacity: 0;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 24px;
+            animation: fadeIn 1s forwards 1s;
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* --- Social Proof Bar --- */
+        .social-proof {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .marquee-wrapper {
+            display: flex;
+            gap: 80px;
+            white-space: nowrap;
+            width: max-content;
+            animation: marquee 30s linear infinite;
+        }
+
+        .social-item {
+            color: var(--muted);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 80px;
+        }
+
+        .social-item span {
+            color: var(--text);
+            opacity: 0.6;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* --- Features Section --- */
+        .features {
+            padding: var(--section-pad) 0;
+        }
+
+        .section-header {
+            max-width: 600px;
+            margin-bottom: 80px;
+        }
+
+        .section-header h2 {
+            font-family: var(--ff-display);
+            font-size: clamp(2rem, 5vw, 4rem);
+            line-height: 1.1;
+            font-style: italic;
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-auto-rows: minmax(300px, auto);
+            gap: 24px;
+        }
+
+        .bento-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .bento-card:hover {
+            border-color: rgba(232, 81, 42, 0.3);
+            transform: scale(1.01);
+        }
+
+        .card-num {
+            font-weight: 800;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: white;
+        }
+
+        .card-desc {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        /* Cards Layout */
+        .bento-card.large { grid-column: span 7; grid-row: span 2; }
+        .bento-card.top-right { grid-column: span 5; }
+        .bento-card.bottom-right { grid-column: span 5; }
+        .bento-card.full { grid-column: span 12; }
+
+        /* Card Visuals Mockups */
+        .mockup-chat {
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+        }
+
+        .bubble-ai { align-self: flex-start; border-left: 2px solid var(--accent); }
+        .bubble-user { align-self: flex-end; background: var(--accent); color: white; }
+
+        .mockup-scores {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .score-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .score-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .score-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        }
+
+        .mockup-topics {
+            margin-top: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .topic-pill {
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            color: var(--text);
+        }
+
+        .mockup-table {
+            margin-top: 32px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .mockup-table td {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .rank-badge {
+            width: 24px;
+            height: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        /* --- How It Works --- */
+        .how-it-works {
+            padding: var(--section-pad) 0;
+            position: relative;
+        }
+
+        .steps-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 60px;
+            position: relative;
+        }
+
+        .steps-row::after {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: repeating-linear-gradient(90deg, var(--border), var(--border) 10px, transparent 10px, transparent 20px);
+            z-index: -1;
+        }
+
+        .step-card {
+            text-align: center;
+        }
+
+        .step-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 32px;
+            position: relative;
+        }
+
+        .step-bg-num {
+            position: absolute;
+            font-size: 5rem;
+            font-weight: 900;
+            color: white;
+            opacity: 0.02;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .step-desc {
+            color: var(--muted);
+            font-size: 0.95rem;
+            max-width: 240px;
+            margin: 0 auto;
+        }
+
+        /* --- CTA Section --- */
+        .cta-section {
+            padding: var(--section-pad) 0;
+        }
+
+        .cta-box {
+            background: #0C0C14;
+            border-radius: 32px;
+            padding: 100px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .cta-box::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(232, 81, 42, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta-box h2 {
+            font-family: var(--ff-display);
+            font-size: clamp(2rem, 6vw, 4.5rem);
+            line-height: 1;
+            margin-bottom: 24px;
+            font-style: italic;
+        }
+
+        .cta-box p {
+            color: var(--muted);
+            margin-bottom: 48px;
+            font-size: 1.1rem;
+        }
+
+        /* --- Footer --- */
+        footer {
+            padding: 80px 0 40px;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 80px;
+        }
+
+        .footer-brand .logo {
+            margin-bottom: 16px;
+        }
+
+        .footer-brand p {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 48px;
+        }
+
+        .footer-column h4 {
+            font-size: 0.75rem;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+
+        .footer-column a {
+            display: block;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            transition: color 0.3s;
+        }
+
+        .footer-column a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            :root {
+                --section-pad: 80px;
+            }
+
+            .hero-word { transform: none !important; }
+            
+            .nav-links { display: none; }
+            
+            .bento-grid {
+                grid-template-columns: 1fr;
+            }
+            .bento-card { grid-column: span 1 !important; grid-row: span 1 !important; }
+            
+            .steps-row {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            .steps-row::after { display: none; }
+            
+            .nav-cta { display: none; }
+
+            .menu-btn {
+                display: block;
+                background: none;
+                border: none;
+                color: var(--text);
+                font-size: 1.5rem;
+            }
+        }
+
+        .menu-btn {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="custom-cursor"></div>
+    <div class="noise-overlay"></div>
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    <div class="grid-overlay"></div>
+
+    <nav id="navbar">
+        <a href="#" class="logo">
+            <div class="logo-mark">AI</div>
+            <span>COACH</span>
+        </a>
+        <div class="nav-links">
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#how" class="nav-link">How it Works</a>
+            <a href="#leaderboard" class="nav-link">Leaderboard</a>
+        </div>
+        <a href="#waitlist" class="nav-cta">Join Waitlist →</a>
+        <button class="menu-btn">☰</button>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-tag">
+                <span>⬡</span> AI-POWERED DEBATE TRAINING
+            </div>
+            <h1 class="hero-title">
+                <span class="hero-word word-argue">ARGUE.</span>
+                <span class="hero-word word-think">THINK.</span>
+                <span class="hero-word word-win">WIN.</span>
+            </h1>
+            <p class="hero-subtext">
+                Practice debate with an AI opponent that pushes back, scores your logic, and makes you sharper — every single round.
+            </p>
+            <div class="hero-ctas">
+                <a href="#waitlist" class="btn-primary">Reserve Your Spot →</a>
+                <a href="#how" class="btn-ghost">See how it works →</a>
+            </div>
+        </section>
+
+        <!-- Social Proof -->
+        <div class="social-proof">
+            <div class="marquee-wrapper">
+                <div class="social-item">
+                    <span>Trusted by 400+ students across 12 institutions</span>
+                    <span>HARVARD DEBATE SOCIETY</span>
+                    <span>OXFORD UNION</span>
+                    <span>STANFORD ACQUISITION</span>
+                    <span>YALE DISPUTE</span>
+                </div>
+                <div class="social-item">
+                    <span>Trusted by 400+ students across 12 institutions</span>
+                    <span>HARVARD DEBATE SOCIETY</span>
+                    <span>OXFORD UNION</span>
+                    <span>STANFORD ACQUISITION</span>
+                    <span>YALE DISPUTE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <section class="features container" id="features">
+            <div class="reveal section-header">
+                <span class="caption">What you get</span>
+                <h2>Everything you need to dominate any debate.</h2>
+            </div>
+
+            <div class="bento-grid">
+                <!-- Card 1 -->
+                <div class="bento-card large reveal">
+                    <span class="card-num">01</span>
+                    <h3 class="card-title">AI Opponent</h3>
+                    <p class="card-desc">Argues any side of any topic with real, structured arguments — no easy wins.</p>
+                    
+                    <div class="mockup-chat">
+                        <div class="chat-bubble bubble-ai">Your point on universal income assumes a fixed labor supply. Have you considered the velocity of capital?</div>
+                        <div class="chat-bubble bubble-user">Capital velocity increases but productivity might stagnate without incentive.</div>
+                        <div class="chat-bubble bubble-ai">Interesting check. But empirical data from the 2022 Nordic trials suggests otherwise...</div>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bento-card top-right reveal">
+                    <span class="card-num">02</span>
+                    <h3 class="card-title">Live Scoring</h3>
+                    <p class="card-desc">Instant feedback on logic, structure, and persuasion.</p>
+                    
+                    <div class="mockup-scores">
+                        <div class="score-row">
+                            <div class="score-label"><span>Logic</span><span>87%</span></div>
+                            <div class="score-bar"><div class="score-fill" style="width: 87%"></div></div>
+                        </div>
+                        <div class="score-row">
+                            <div class="score-label"><span>Persuasion</span><span>74%</span></div>
+                            <div class="score-bar"><div class="score-fill" style="width: 74%"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bento-card bottom-right reveal">
+                    <span class="card-num">03</span>
+                    <h3 class="card-title">Topic Library</h3>
+                    <p class="card-desc">Choose from 500+ curated academic topics.</p>
+                    
+                    <div class="mockup-topics">
+                        <div class="topic-pill">Climate Policy</div>
+                        <div class="topic-pill">AI Ethics</div>
+                        <div class="topic-pill">Space X Expansion</div>
+                        <div class="topic-pill">UBI Trials</div>
+                        <div class="topic-pill">Free Speech</div>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bento-card full reveal" id="leaderboard">
+                    <span class="card-num">04</span>
+                    <h3 class="card-title">Leaderboard Preview</h3>
+                    <p class="card-desc">Compete with the sharpest minds globally.</p>
+                    
+                    <table class="mockup-table">
+                        <tr>
+                            <td><span class="rank-badge">1</span></td>
+                            <td>Alex Thompson</td>
+                            <td>Oxford University</td>
+                            <td align="right">2,840 pts</td>
+                        </tr>
+                        <tr>
+                            <td><span class="rank-badge">2</span></td>
+                            <td>Sarah Chen</td>
+                            <td>Stanford University</td>
+                            <td align="right">2,795 pts</td>
+                        </tr>
+                        <tr>
+                            <td><span class="rank-badge">3</span></td>
+                            <td>Marcus Lee</td>
+                            <td>London School of Econ</td>
+                            <td align="right">2,610 pts</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="how-it-works container" id="how">
+            <div class="reveal section-header" style="margin-left: auto; text-align: right;">
+                <span class="caption">The Process</span>
+                <h2>From topic to triumph in 3 steps.</h2>
+            </div>
+
+            <div class="steps-row">
+                <div class="step-card reveal">
+                    <div class="step-icon">
+                        <div class="step-bg-num">1</div>
+                        📚
+                    </div>
+                    <h3 class="step-title">Choose</h3>
+                    <p class="step-desc">Pick a topic or get assigned one from our deep academic library.</p>
+                </div>
+                <div class="step-card reveal" style="transition-delay: 0.2s;">
+                    <div class="step-icon">
+                        <div class="step-bg-num">2</div>
+                        ⚔️
+                    </div>
+                    <h3 class="step-title">Debate</h3>
+                    <p class="step-desc">Go head-to-head with an AI that identifies and attacks logical fallacies.</p>
+                </div>
+                <div class="step-card reveal" style="transition-delay: 0.4s;">
+                    <div class="step-icon">
+                        <div class="step-bg-num">3</div>
+                        📈
+                    </div>
+                    <h3 class="step-title">Optimize</h3>
+                    <p class="step-desc">Get a granular logic score and see exactly where your arguments fold.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section container" id="waitlist">
+            <div class="cta-box reveal">
+                <h2>Ready to sharpen your mind?</h2>
+                <p>Join 400+ students on the early access waitlist.</p>
+                <a href="#" class="btn-primary">Get Early Access →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="container">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <a href="#" class="logo">
+                    <div class="logo-mark">AI</div>
+                    <span>COACH</span>
+                </a>
+                <p>Advanced debate training for the next generation of thinkers.</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="#how">How it Works</a>
+                    <a href="#leaderboard">Leaderboard</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="#">About</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Twitter/X</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© 2025 AI Coach. All rights reserved.</span>
+            <span>Built for thinkers.</span>
+        </div>
+    </footer>
+
+    <script>
+        // --- Custom Cursor ---
+        const cursor = document.getElementById('custom-cursor');
+        let mouseX = 0, mouseY = 0;
+        let cursorX = 0, cursorY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function animateCursor() {
+            let lerpX = (mouseX - cursorX) * 0.15;
+            let lerpY = (mouseY - cursorY) * 0.15;
+            cursorX += lerpX;
+            cursorY += lerpY;
+            cursor.style.left = cursorX + 'px';
+            cursor.style.top = cursorY + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // --- Navbar Scroll Logic ---
+        const nav = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // --- Intersection Observer for Reveals ---
+        const observerOptions = {
+            threshold: 0.15
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // --- Smooth Scroll ---
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
