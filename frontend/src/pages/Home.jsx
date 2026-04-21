@@ -1,245 +1,460 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
+const features = [
+  {
+    icon: "🧠",
+    num: "01",
+    title: "Learn",
+    desc: "Structured lessons across Grammar, Vocabulary, Culture & Pronunciation — curated per your level.",
+    accent: "#0DFFB0",
+    path: "/learn"
+  },
+  {
+    icon: "🎴",
+    num: "02",
+    title: "Flashcards",
+    desc: "Smart spaced-repetition flashcards that adapt to what you forget the fastest.",
+    accent: "#7C5CFC",
+    path: "/flashcards"
+  },
+  {
+    icon: "🎭",
+    num: "03",
+    title: "Roleplay",
+    desc: "Practice real conversations — order food, book a hotel, nail a job interview — with an AI partner.",
+    accent: "#FF9F43",
+    path: "/ai-coach"
+  },
+  {
+    icon: "📋",
+    num: "04",
+    title: "Quiz",
+    desc: "Test your knowledge with adaptive quizzes and get instant AI-powered feedback.",
+    accent: "#0DFFB0",
+    path: "/quiz"
+  },
+  {
+    icon: "🔍",
+    num: "05",
+    title: "Object Detection",
+    desc: "Point your camera at anything — AI instantly teaches you the word in your target language.",
+    accent: "#7C5CFC",
+    path: "/object-detection"
+  },
+  {
+    icon: "📈",
+    num: "06",
+    title: "Progress",
+    desc: "Track XP, streaks, skill radar and badges. See exactly how far you've come.",
+    accent: "#FF9F43",
+    path: "/progress"
+  },
+];
+
+const stats = [
+  { value: "6", label: "Practice Modes" },
+  { value: "50+", label: "Roleplay Scenarios" },
+  { value: "AI", label: "Powered Feedback" },
+  { value: "∞", label: "Languages" },
+];
+
 function Home() {
   const navigate = useNavigate();
   const cursorRef = useRef(null);
 
   useEffect(() => {
-    // Custom Cursor Logic
     const cursor = cursorRef.current;
-    let mouseX = 0, mouseY = 0;
-    let cursorX = 0, cursorY = 0;
+    let mx = 0, my = 0, cx = 0, cy = 0;
 
-    const onMouseMove = (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    };
-
-    const animateCursor = () => {
-      let lerpX = (mouseX - cursorX) * 0.15;
-      let lerpY = (mouseY - cursorY) * 0.15;
-      cursorX += lerpX;
-      cursorY += lerpY;
+    const move = (e) => { mx = e.clientX; my = e.clientY; };
+    const animate = () => {
+      cx += (mx - cx) * 0.13;
+      cy += (my - cy) * 0.13;
       if (cursor) {
-        cursor.style.left = cursorX + 'px';
-        cursor.style.top = cursorY + 'px';
+        cursor.style.left = cx + "px";
+        cursor.style.top  = cy + "px";
       }
-      requestAnimationFrame(animateCursor);
+      requestAnimationFrame(animate);
     };
+    window.addEventListener("mousemove", move);
+    animate();
 
-    window.addEventListener('mousemove', onMouseMove);
-    animateCursor();
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach(e => e.isIntersecting && e.target.classList.add("active")),
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll(".reveal").forEach(el => io.observe(el));
 
-    // Intersection Observer for Reveal Animations
-    const observerOptions = { threshold: 0.15 };
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-    };
+    return () => window.removeEventListener("mousemove", move);
   }, []);
 
   return (
-    <div className="landing-premium">
-      {/* Custom Styles for this page */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Instrument+Serif:ital@0;1&display=swap');
+    <div style={{ fontFamily: "var(--font-sans)", background: "var(--c-bg)", color: "var(--c-text1)", overflowX: "hidden" }}>
 
-        .landing-premium {
-          --bg: #07070B;
-          --surface: #0F0F17;
-          --border: rgba(255, 255, 255, 0.06);
-          --accent: #E8512A;
-          --accent-2: #9B72F5;
-          --text: #EDEDEC;
-          --muted: #6B6B7A;
-          --ff-display: 'Instrument Serif', serif;
-          --ff-ui: 'DM Sans', sans-serif;
-          background-color: var(--bg);
-          color: var(--text);
-          font-family: var(--ff-ui);
-          overflow-x: hidden;
-        }
+      {/* Custom cursor */}
+      <div ref={cursorRef} style={{
+        position: "fixed",
+        width: 10, height: 10,
+        background: "#0DFFB0",
+        borderRadius: "50%",
+        pointerEvents: "none",
+        zIndex: 10000,
+        mixBlendMode: "difference",
+        transform: "translate(-50%,-50%)",
+        transition: "opacity 0.3s",
+      }} />
 
-        #custom-cursor-home {
-          position: fixed;
-          width: 8px;
-          height: 8px;
-          background-color: var(--accent);
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 10000;
-          mix-blend-mode: difference;
-          transform: translate(-50%, -50%);
-        }
+      {/* Noise */}
+      <div className="noise" />
 
-        .noise-overlay {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          z-index: 9999;
-          opacity: 0.03;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
+      {/* ── HERO ── */}
+      <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden" }}>
+        {/* Orbs */}
+        <div className="orb orb-teal" style={{ top: "-10%", left: "-5%" }} />
+        <div className="orb orb-violet" style={{ bottom: "0%", right: "5%" }} />
+        <div className="orb orb-amber" style={{ top: "40%", left: "50%" }} />
 
-        .container-p { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
-        
-        .hero-home { height: 100vh; display: flex; flex-direction: column; items-center justify-center; text-align: center; position: relative; }
-        
-        .hero-tag { border: 1px solid var(--border); padding: 6px 14px; border-radius: 999px; font-size: 0.7rem; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 48px; }
-        
-        .hero-title-h { font-family: var(--ff-display); font-size: clamp(4.5rem, 11vw, 11rem); line-height: 0.85; margin-bottom: 40px; }
-        .hero-word { display: block; opacity: 0; filter: blur(12px); transform: translateY(20px); font-style: italic; animation: blurUp 1.2s forwards cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .word1 { transform: translateX(-40px); }
-        .word2 { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation-delay: 0.25s !important; }
-        .word3 { color: var(--accent); transform: translateX(80px); animation-delay: 0.5s !important; }
+        <div className="container" style={{ position: "relative", zIndex: 1, textAlign: "center", paddingTop: 80 }}>
 
-        @keyframes blurUp { to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+          <div className="pill" style={{ marginBottom: 36, display: "inline-flex" }}>
+            <span style={{ color: "#0DFFB0" }}>✦</span>
+            AI-POWERED LANGUAGE LEARNING
+          </div>
 
-        .reveal { opacity: 0; transform: translateY(30px); transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .reveal.active { opacity: 1; transform: translateY(0); }
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(3.5rem, 9vw, 8.5rem)",
+            lineHeight: 0.9,
+            letterSpacing: "-2px",
+            marginBottom: 32,
+            fontStyle: "italic",
+          }}>
+            <span style={{ display: "block", animation: "fadeUp 0.8s both 0.1s", color: "var(--c-text1)" }}>Speak</span>
+            <span style={{
+              display: "block",
+              animation: "fadeUp 0.8s both 0.3s",
+              background: "linear-gradient(90deg, #0DFFB0 0%, #7C5CFC 60%, #FF9F43 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}>Any Language.</span>
+            <span style={{ display: "block", animation: "fadeUp 0.8s both 0.5s", color: "var(--c-text2)" }}>Fluently.</span>
+          </h1>
 
-        .bento-grid-p { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
-        .bento-card-p { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; transition: all 0.4s ease; }
-        .bento-card-p:hover { border-color: rgba(232, 81, 42, 0.3); transform: scale(1.01); }
+          <p style={{
+            maxWidth: 480,
+            margin: "0 auto 48px",
+            color: "var(--c-text2)",
+            fontSize: "1.05rem",
+            lineHeight: 1.7,
+            animation: "fadeUp 0.8s both 0.7s",
+          }}>
+            Learn, practice roleplay, take quizzes, and detect objects in your target language — all powered by AI.
+          </p>
 
-        .marquee-h { overflow: hidden; padding: 40px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-        .marquee-inner { display: flex; gap: 80px; width: max-content; animation: marquee-anim 30s linear infinite; }
-        @keyframes marquee-anim { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+          <div style={{
+            display: "flex",
+            gap: 16,
+            justifyContent: "center",
+            flexWrap: "wrap",
+            animation: "fadeUp 0.8s both 0.9s",
+          }}>
+            <button onClick={() => navigate("/signup")} className="btn-primary">
+              Start for Free →
+            </button>
+            <button
+              onClick={() => document.getElementById("features-sec").scrollIntoView({ behavior: "smooth" })}
+              className="btn-outline"
+            >
+              Explore Features
+            </button>
+          </div>
 
-        .steps-p { display: grid; grid-template-columns: repeat(3, 1fr); gap: 60px; margin-top: 60px; }
-      `}</style>
-
-      <div id="custom-cursor-home" ref={cursorRef}></div>
-      <div className="noise-overlay"></div>
-
-      {/* --- HERO --- */}
-      <section className="hero-home container-p">
-        <div className="hero-tag">⬡ AI-POWERED DEBATE TRAINING</div>
-        <h1 className="hero-title-h">
-          <span className="hero-word word1">ARGUE.</span>
-          <span className="hero-word word2">THINK.</span>
-          <span className="hero-word word3">WIN.</span>
-        </h1>
-        <p className="hero-subtext text-muted max-w-[480px] mx-auto opacity-0 animate-[fadeIn_1s_forwards_0.8s]">
-          Practice debate with an AI opponent that pushes back, scores your logic, and makes you sharper — every single round.
-        </p>
-        <div className="flex gap-6 mt-12 justify-center opacity-0 animate-[fadeIn_1s_forwards_1s]">
-          <button onClick={() => navigate("/signup")} className="btn-primary">Reserve Your Spot →</button>
-          <button onClick={() => { document.getElementById('how-p').scrollIntoView({behavior: 'smooth'}) }} className="btn-ghost">See how it works →</button>
+          {/* Stats row */}
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 60,
+            marginTop: 80,
+            paddingTop: 48,
+            borderTop: "1px solid var(--c-border)",
+            flexWrap: "wrap",
+            animation: "fadeUp 0.8s both 1.1s",
+          }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "2.2rem",
+                  fontWeight: 700,
+                  fontStyle: "italic",
+                  background: i % 2 === 0
+                    ? "linear-gradient(135deg, #0DFFB0, #7C5CFC)"
+                    : "linear-gradient(135deg, #FF9F43, #7C5CFC)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}>{s.value}</div>
+                <div style={{ color: "var(--c-text3)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* --- MARQUEE --- */}
-      <div className="marquee-h">
-        <div className="marquee-inner">
+      {/* ── MARQUEE ── */}
+      <div className="marquee-wrap">
+        <div className="marquee-track">
           {[1, 2].map(i => (
-            <div key={i} className="flex gap-20 text-muted font-medium text-sm">
-              <span>TRUSTED BY 400+ STUDENTS ACROSS 12 INSTITUTIONS</span>
-              <span>HARVARD DEBATE SOCIETY</span>
-              <span>OXFORD UNION</span>
-              <span>STANFORD ACQUISITION</span>
-              <span>YALE DISPUTE</span>
+            <div key={i} style={{ display: "flex", gap: 80, color: "var(--c-text3)", fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.15em", alignItems: "center" }}>
+              <span>🌍 LEARN ANY LANGUAGE</span>
+              <span style={{ color: "#0DFFB0" }}>✦</span>
+              <span>🎭 AI ROLEPLAY CONVERSATIONS</span>
+              <span style={{ color: "#7C5CFC" }}>✦</span>
+              <span>🔍 OBJECT DETECTION</span>
+              <span style={{ color: "#FF9F43" }}>✦</span>
+              <span>📋 ADAPTIVE QUIZZES</span>
+              <span style={{ color: "#0DFFB0" }}>✦</span>
+              <span>📈 TRACK YOUR PROGRESS</span>
+              <span style={{ color: "#7C5CFC" }}>✦</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* --- FEATURES --- */}
-      <section className="py-32 container-p" id="features">
-        <div className="reveal mb-20 max-w-xl">
-          <span className="caption">What you get</span>
-          <h2 className="text-5xl font-display italic">Everything you need to dominate any debate.</h2>
-        </div>
+      {/* ── FEATURES ── */}
+      <section className="section" id="features-sec">
+        <div className="container">
+          <div className="reveal" style={{ marginBottom: 72, maxWidth: 600 }}>
+            <div className="pill" style={{ marginBottom: 20 }}>What you get</div>
+            <h2 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(2.2rem, 5vw, 3.8rem)",
+              fontStyle: "italic",
+              lineHeight: 1.1,
+              marginBottom: 16,
+            }}>
+              Everything you need to<br />
+              <span style={{
+                background: "linear-gradient(90deg, #0DFFB0, #7C5CFC)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}>master a language.</span>
+            </h2>
+            <p style={{ color: "var(--c-text2)", maxWidth: 440, lineHeight: 1.7 }}>
+              Six powerful modes, one seamless experience — designed to make fluency inevitable.
+            </p>
+          </div>
 
-        <div className="bento-grid-p">
-          <div className="bento-card-p col-span-12 md:col-span-7 row-span-2 reveal">
-            <span className="text-accent text-[0.7rem] font-bold tracking-widest mb-4 block uppercase">01</span>
-            <h3 className="text-2xl font-bold mb-4">AI Opponent</h3>
-            <p className="text-muted text-sm">Argues any side of any topic with real, structured arguments — no easy wins.</p>
-            <div className="mt-10 space-y-4">
-               <div className="p-4 rounded-xl border border-border bg-white/5 text-[0.8rem] border-l-2 border-l-accent">Your point on universal income assumes a fixed labor supply. Have you considered the velocity of capital?</div>
-               <div className="p-4 rounded-xl border border-border bg-accent text-white text-[0.8rem] ml-auto max-w-[80%]">Capital velocity increases but productivity might stagnate.</div>
-            </div>
-          </div>
-          <div className="bento-card-p col-span-12 md:col-span-5 reveal">
-            <span className="text-accent text-[0.7rem] font-bold tracking-widest mb-4 block uppercase">02</span>
-            <h3 className="text-2xl font-bold mb-4">Live Scoring</h3>
-            <p className="text-muted text-sm">Instant feedback on logic, structure, and persuasion.</p>
-            <div className="mt-8 space-y-4">
-                <div className="space-y-2">
-                    <div className="flex justify-between text-[0.7rem] text-muted"><span>Logic</span><span>87%</span></div>
-                    <div className="h-1 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-accent to-accent-2" style={{width:'87%'}}></div></div>
-                </div>
-            </div>
-          </div>
-          <div className="bento-card-p col-span-12 md:col-span-5 reveal">
-            <span className="text-accent text-[0.7rem] font-bold tracking-widest mb-4 block uppercase">03</span>
-            <h3 className="text-2xl font-bold mb-4">Topic Library</h3>
-            <div className="flex flex-wrap gap-2 mt-6">
-                {["Climate Policy", "AI Ethics", "Space X", "UBI"].map(t => <span key={t} className="px-3 py-1 rounded-full border border-border bg-white/5 text-[0.7rem]">{t}</span>)}
-            </div>
-          </div>
-        </div>
-      </section>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: 24,
+          }}>
+            {features.map((f, i) => (
+              <div
+                key={i}
+                onClick={() => navigate(f.path)}
+                className="reveal glass-card"
+                style={{
+                  padding: 36,
+                  transitionDelay: `${i * 0.08}s`,
+                  borderTop: `2px solid ${f.accent}22`,
+                  position: "relative",
+                  overflow: "hidden",
+                  cursor: "pointer",
+                }}
+              >
+                {/* subtle glow accent */}
+                <div style={{
+                  position: "absolute",
+                  top: -40, right: -40,
+                  width: 160, height: 160,
+                  borderRadius: "50%",
+                  background: `radial-gradient(circle, ${f.accent}18 0%, transparent 70%)`,
+                  pointerEvents: "none",
+                }} />
 
-      {/* --- STEPS --- */}
-      <section className="py-32 container-p" id="how-p">
-        <div className="reveal text-center mb-20">
-          <span className="caption">The Process</span>
-          <h2 className="text-5xl font-display italic">From topic to triumph in 3 steps.</h2>
-        </div>
-        <div className="steps-p">
-            {[
-                { n: "1", i: "📚", t: "Choose", d: "Pick a topic from our deep library." },
-                { n: "2", i: "⚔️", t: "Debate", d: "Go head-to-head with a sharp AI." },
-                { n: "3", i: "📈", t: "Optimize", d: "Get a granular logic score." }
-            ].map((s, idx) => (
-                <div key={idx} className="reveal text-center" style={{transitionDelay: `${idx * 0.2}s`}}>
-                    <div className="w-20 h-20 bg-surface border border-border rounded-2xl flex items-center justify-center text-3xl mx-auto mb-8 relative">
-                        <span className="absolute text-5xl font-black text-white/5 -top-4">{s.n}</span>
-                        {s.i}
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">{s.t}</h3>
-                    <p className="text-muted text-sm px-10">{s.d}</p>
+                <div style={{
+                  width: 52, height: 52,
+                  borderRadius: 14,
+                  background: `${f.accent}18`,
+                  border: `1px solid ${f.accent}30`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.5rem",
+                  marginBottom: 24,
+                }}>
+                  {f.icon}
                 </div>
+
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.2em", color: f.accent, marginBottom: 8, textTransform: "uppercase" }}>
+                  {f.num}
+                </div>
+                <h3 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 10 }}>{f.title}</h3>
+                <p style={{ color: "var(--c-text2)", fontSize: "0.9rem", lineHeight: 1.7 }}>{f.desc}</p>
+              </div>
             ))}
+          </div>
         </div>
       </section>
 
-      {/* --- CTA --- */}
-      <section className="py-32 container-p">
-          <div className="reveal rounded-[32px] bg-[#0C0C14] border border-border p-20 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-radial-gradient from-accent/5 to-transparent pointer-events-none"></div>
-              <h2 className="text-6xl font-display italic mb-6">Ready to sharpen your mind?</h2>
-              <p className="text-muted mb-10">Join 400+ students on the early access waitlist.</p>
-              <button onClick={() => navigate("/signup")} className="btn-primary">Get Early Access →</button>
+      {/* ── HOW IT WORKS ── */}
+      <section className="section" id="how-it-works" style={{ background: "var(--c-surface1)" }}>
+        <div className="container">
+          <div className="reveal" style={{ textAlign: "center", marginBottom: 72 }}>
+            <div className="pill" style={{ marginBottom: 20 }}>How it works</div>
+            <h2 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(2.2rem, 5vw, 3.8rem)",
+              fontStyle: "italic",
+              lineHeight: 1.1,
+            }}>
+              From zero to fluent<br />
+              <span style={{
+                background: "linear-gradient(90deg, #FF9F43, #7C5CFC)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}>in 3 simple steps.</span>
+            </h2>
           </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 40 }}>
+            {[
+              { n: "01", icon: "🌐", title: "Choose Your Language", desc: "Pick any language you want to learn. Set your level — Beginner, Intermediate, or Advanced." },
+              { n: "02", icon: "🚀", title: "Practice Every Day", desc: "Use Learn, Flashcards, Quiz, Roleplay or Object Detection. Even 10 minutes matters." },
+              { n: "03", icon: "🏆", title: "Track & Improve", desc: "Your AI coach gives real-time feedback. Watch your skills grow on the Progress dashboard." },
+            ].map((step, i) => (
+              <div key={i} className="reveal" style={{ transitionDelay: `${i * 0.15}s`, textAlign: "center", padding: "48px 32px" }}>
+                <div style={{
+                  width: 72, height: 72,
+                  borderRadius: 20,
+                  background: "var(--c-surface3)",
+                  border: "1px solid var(--c-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "2rem",
+                  margin: "0 auto 28px",
+                  position: "relative",
+                }}>
+                  {step.icon}
+                  <span style={{
+                    position: "absolute",
+                    top: -12, right: -12,
+                    width: 28, height: 28,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #0DFFB0, #7C5CFC)",
+                    color: "#060810",
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>{step.n}</span>
+                </div>
+                <h3 style={{ fontSize: "1.15rem", fontWeight: 700, marginBottom: 12 }}>{step.title}</h3>
+                <p style={{ color: "var(--c-text2)", fontSize: "0.9rem", lineHeight: 1.7 }}>{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
-      <footer className="border-t border-border py-20 container-p">
-          <div className="flex justify-between items-start">
-              <div>
-                  <div className="font-bold tracking-[3px] text-accent mb-2">AI COACH</div>
-                  <p className="text-muted text-xs">Built for serious thinkers.</p>
+      {/* ── CTA ── */}
+      <section className="section">
+        <div className="container">
+          <div className="reveal" style={{
+            background: "linear-gradient(135deg, var(--c-surface2) 0%, var(--c-surface3) 100%)",
+            border: "1px solid var(--c-border)",
+            borderRadius: 28,
+            padding: "80px 60px",
+            textAlign: "center",
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            {/* Background glows */}
+            <div style={{ position: "absolute", top: -80, left: "20%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(13,255,176,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: -80, right: "20%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,92,252,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div className="pill" style={{ marginBottom: 24 }}>Get started today</div>
+              <h2 style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(2.2rem, 5vw, 4rem)",
+                fontStyle: "italic",
+                lineHeight: 1.1,
+                marginBottom: 20,
+              }}>
+                Ready to speak a new<br />
+                <span style={{
+                  background: "linear-gradient(90deg, #0DFFB0 0%, #7C5CFC 50%, #FF9F43 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}>language fluently?</span>
+              </h2>
+              <p style={{ color: "var(--c-text2)", marginBottom: 40, maxWidth: 400, margin: "0 auto 40px", lineHeight: 1.7 }}>
+                Join learners who are already using AI to break language barriers — for free.
+              </p>
+              <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+                <button onClick={() => navigate("/signup")} className="btn-primary" style={{ fontSize: "0.95rem", padding: "15px 40px" }}>
+                  Start Learning for Free →
+                </button>
+                <button onClick={() => navigate("/ai-coach")} className="btn-outline">
+                  Try AI Coach
+                </button>
               </div>
-              <div className="flex gap-20">
-                  <div className="space-y-4">
-                      <div className="text-[0.6rem] uppercase tracking-widest text-white">Product</div>
-                      <a href="#features" className="block text-muted text-xs">Features</a>
-                      <a href="#how-p" className="block text-muted text-xs">How it Works</a>
-                  </div>
-              </div>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="footer">
+        <div className="container">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: "linear-gradient(135deg, #0DFFB0, #7C5CFC)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#060810", fontWeight: 800, fontSize: "0.75rem",
+                }}>AI</div>
+                <span style={{ fontWeight: 700, letterSpacing: "3px", color: "var(--c-text1)", fontSize: "0.9rem" }}>LANGUAGE COACH</span>
+              </div>
+              <p style={{ color: "var(--c-text3)", fontSize: "0.82rem" }}>Built for passionate language learners.</p>
+            </div>
+            <div style={{ display: "flex", gap: 60 }}>
+              <div>
+                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--c-text1)", marginBottom: 16, fontWeight: 700 }}>Product</div>
+                {["Features", "How it Works", "AI Coach"].map(l => (
+                  <a key={l} href="#features-sec" style={{ display: "block", color: "var(--c-text3)", fontSize: "0.82rem", marginBottom: 10, textDecoration: "none", transition: "color 0.2s" }}
+                    onMouseEnter={e => e.target.style.color = "var(--c-accent)"}
+                    onMouseLeave={e => e.target.style.color = "var(--c-text3)"}
+                  >{l}</a>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--c-text1)", marginBottom: 16, fontWeight: 700 }}>Pages</div>
+                {[{ l: "Login", p: "/login" }, { l: "Sign Up", p: "/signup" }, { l: "About", p: "/about" }].map(({ l, p }) => (
+                  <a key={l} href={p} style={{ display: "block", color: "var(--c-text3)", fontSize: "0.82rem", marginBottom: 10, textDecoration: "none", transition: "color 0.2s" }}
+                    onMouseEnter={e => e.target.style.color = "var(--c-accent)"}
+                    onMouseLeave={e => e.target.style.color = "var(--c-text3)"}
+                  >{l}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ borderTop: "1px solid var(--c-border)", marginTop: 40, paddingTop: 28, textAlign: "center", color: "var(--c-text3)", fontSize: "0.78rem" }}>
+            © 2025 AI Language Coach. Built with ❤️ for language learners worldwide.
+          </div>
+        </div>
       </footer>
     </div>
   );

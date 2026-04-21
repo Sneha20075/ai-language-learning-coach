@@ -1,25 +1,6 @@
-const mongoose = require('mongoose');
+// NOTE: Registration validation is handled in authController.js
+// The actual user data is stored using the User model (User.js)
+// This file is kept for backward compatibility only.
+// Please use User.js model for all user operations.
 
-const registerSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  confirmPassword: {
-    type: String,
-    required: true,
-  },
-}, {
-  timestamps: true,
-});
-
-module.exports = mongoose.model('Register', registerSchema);
+module.exports = require('./User');

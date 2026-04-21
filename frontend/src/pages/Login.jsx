@@ -2,96 +2,122 @@ import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { LogIn, Mail, Lock, ShieldCheck, ArrowRight } from "lucide-react";
 
 function Login() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
         email,
         password,
       });
-      localStorage.setItem("userInfo", JSON.stringify(data));
-      toast.success("Welcome back! 🚀");
+      localStorage.setItem("userInfo", JSON.stringify(res.data));
+      toast.success("Welcome back! 👋");
       navigate("/");
-      window.location.reload();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid credentials!");
+      toast.error(err.response?.data?.message || "Invalid credentials");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-62px)] flex items-center justify-center px-4 py-12 animate-fadeUp">
-      <div className="max-w-[420px] w-full">
+    <div className="min-h-screen flex items-center justify-center p-6 py-20 animate-fadeUp">
+      <div className="w-full max-w-[480px]">
+        {/* Logo / Header Area */}
+        <div className="text-center mb-10">
+            <div className="w-16 h-16 rounded-2xl bg-acc/10 border border-acc/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(13,255,176,0.1)]">
+                <ShieldCheck size={32} className="text-acc" />
+            </div>
+            <h1 className="font-display text-4xl font-bold text-t1 tracking-tight mb-3">
+                Welcome <span className="gradient-text">Back</span>
+            </h1>
+            <p className="text-t2 text-sm">
+                Don't have an account? 
+                <Link to="/signup" className="text-acc hover:underline ml-1 font-medium">Create one for free →</Link>
+            </p>
+        </div>
+
+        {/* glass-card centered */}
+        <div className="glass-card p-10 relative overflow-hidden group">
+            {/* Subtle Gradient Glow */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-acc/10 rounded-full blur-[80px] group-hover:bg-acc/15 transition-all duration-500"></div>
+            
+            <form onSubmit={handleLogin} className="relative z-10 space-y-6">
+                <div>
+                    <label className="block text-[0.65rem] font-bold text-t3 uppercase tracking-[2px] mb-2.5 ml-1">
+                        Email Address
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-t3">
+                            <Mail size={16} />
+                        </div>
+                        <input
+                            type="email"
+                            required
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-11"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <div className="flex justify-between items-center mb-2.5 ml-1">
+                        <label className="block text-[0.65rem] font-bold text-t3 uppercase tracking-[2px]">
+                            Password
+                        </label>
+                        <Link to="#" className="text-[0.65rem] font-bold text-acc hover:underline uppercase tracking-[1px]">
+                            Forgot?
+                        </Link>
+                    </div>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-t3">
+                            <Lock size={16} />
+                        </div>
+                        <input
+                            type="password"
+                            required
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="pl-11"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary w-full py-4 rounded-2xl flex items-center justify-center gap-2 group-hover:shadow-[0_0_30px_rgba(13,255,176,0.3)] transition-all"
+                >
+                    {loading ? "Authenticating..." : (
+                        <>
+                            Sign In to Dashboard
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                    )}
+                </button>
+
+                <div className="pt-4 flex items-center gap-4">
+                    <div className="h-[1px] flex-1 bg-border"></div>
+                    <span className="text-[0.6rem] font-bold text-t3 uppercase tracking-[2px]">Secured by AI</span>
+                    <div className="h-[1px] flex-1 bg-border"></div>
+                </div>
+            </form>
+        </div>
         
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-acc/10 flex items-center justify-center mx-auto mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="m7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-          </div>
-          <h2 className="font-display text-[2rem] text-t1 mb-1 font-bold tracking-[1px]">Welcome back</h2>
-          <p className="text-t2 text-[0.88rem]">Enter your credentials to access your account</p>
-        </div>
-
-        {/* Card */}
-        <div className="glass-card p-8">
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-[0.72rem] text-t3 uppercase tracking-[1px] mb-2 font-semibold">Email Address</label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-[0.72rem] text-t3 uppercase tracking-[1px] mb-2 font-semibold">Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full !py-[14px] !text-[0.9rem] !mt-6"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20"/></svg>
-                  Logging in...
-                </span>
-              ) : "Login →"}
-            </button>
-          </form>
-        </div>
-
-        {/* Footer link */}
-        <div className="mt-6 text-center">
-          <p className="text-t2 text-[0.85rem]">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-acc hover:underline font-semibold">
-              Create one
-            </Link>
-          </p>
-        </div>
+        <p className="text-center text-t3 text-[0.7rem] mt-8 uppercase tracking-[1px] font-medium">
+            Protected by Industry Standard Encryption
+        </p>
       </div>
     </div>
   );

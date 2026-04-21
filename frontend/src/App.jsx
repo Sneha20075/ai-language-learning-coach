@@ -8,8 +8,12 @@ import JoinBeta from "./pages/JoinBeta";
 import Login    from "./pages/Login";
 import Signup   from "./pages/Signup";
 import AIChat   from "./pages/AIChat";
+import ObjectDetection from "./pages/ObjectDetection";
+import Learn from "./pages/Learn";
+import Flashcards from "./pages/Flashcards";
+import Quiz from "./pages/Quiz";
+import Progress from "./pages/Progress";
 import { ToastContainer } from "react-toastify";
-
 
 function App() {
   return (
@@ -23,6 +27,11 @@ function App() {
         <Route path="/login"     element={<Login />} />
         <Route path="/signup"    element={<Signup />} />
         <Route path="/ai-coach"  element={<AIChat />} />
+        <Route path="/object-detection" element={<ObjectDetection />} />
+        <Route path="/learn" element={<Learn />} />
+        <Route path="/flashcards" element={<Flashcards />} />
+        <Route path="/quiz" element={<Quiz />} />
+        <Route path="/progress" element={<Progress />} />
       </Routes>
       < ToastContainer />
     </BrowserRouter>
