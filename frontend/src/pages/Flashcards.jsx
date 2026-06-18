@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Layers, ChevronRight, RotateCw, RefreshCw } from "lucide-react";
+import { Layers, ChevronRight, RotateCw, RefreshCw, Zap, Sparkles, Languages } from "lucide-react";
 import { toast } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
+
+import { calculateNextReview } from "../utils/srs";
 
 function Flashcards() {
   const [cards, setCards] = useState([]);
@@ -13,19 +16,15 @@ function Flashcards() {
     () => localStorage.getItem("targetLanguage") || "Spanish"
   );
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setTargetLanguage(localStorage.getItem("targetLanguage") || "Spanish");
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
-
   const fetchCards = useCallback(async (lang) => {
     setLoading(true);
     try {
+      const userInfoStr = localStorage.getItem("userInfo");
+      const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
+
       const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/features/flashcards?lang=${lang}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/features/flashcards?lang=${lang}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
         setCards(res.data.data);
@@ -46,156 +45,184 @@ function Flashcards() {
   const handleRegenerate = async () => {
     setRegenerating(true);
     try {
+      const userInfoStr = localStorage.getItem("userInfo");
+      const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
+
       await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/features/refresh?lang=${targetLanguage}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/features/refresh?lang=${targetLanguage}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.info(`Regenerating ${targetLanguage} content with AI...`);
       await fetchCards(targetLanguage);
-      toast.success("Fresh flashcards generated!");
+      toast.success("Intelligence re-mapped.");
     } catch (error) {
-      toast.error("Regeneration failed. Please try again.");
+      toast.error("Regeneration failed.");
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  const submitSRS = async (quality) => {
+    const card = cards[currentIndex];
+    const srsData = calculateNextReview(
+      quality, 
+      card.repetitions || 0, 
+      card.easeFactor || 2.5, 
+      card.interval || 0
+    );
+
+    try {
+      const userInfoStr = localStorage.getItem("userInfo");
+      const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
+
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/features/flashcards/review`,
+        { cardId: card._id, ...srsData },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      handleNext();
+      toast.success(quality >= 3 ? "Neural connection strengthened." : "Memory node scheduled for retry.");
+    } catch (error) {
+      console.error("SRS Update Failed", error);
     }
   };
 
   const handleNext = () => {
     setIsFlipped(false);
     setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % cards.length);
+      if (cards.length > 1) {
+        setCurrentIndex((prev) => (prev + 1) % cards.length);
+      }
     }, 150);
   };
 
   if (loading)
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>✨</div>
-          <p style={{ color: "var(--c-acc2)", fontWeight: 600 }}>
-            Generating {targetLanguage} flashcards with AI...
-          </p>
-          <p style={{ color: "var(--c-text3)", fontSize: "0.8rem", marginTop: "0.5rem" }}>
-            This may take a few seconds for new languages
-          </p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-washi">
+        <div className="relative">
+            <Layers size={48} className="text-sakura animate-pulse" />
+            <div className="absolute inset-0 bg-sakura/20 blur-2xl rounded-full"></div>
         </div>
+        <p className="mt-8 text-ink font-black uppercase tracking-[0.3em] text-[10px]">Assembling Neural Cards...</p>
       </div>
     );
 
   if (!cards.length)
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        No Flashcards Available
+      <div className="min-h-screen flex items-center justify-center bg-washi">
+        <p className="text-ink/40 font-black uppercase tracking-widest">No Intelligence Nodes Available.</p>
       </div>
     );
 
   const currentCard = cards[currentIndex];
 
   return (
-    <div className="min-h-screen p-6 py-24 animate-fadeUp flex flex-col items-center">
-      <div className="w-full max-w-2xl text-center mb-12">
-        <div className="w-16 h-16 rounded-2xl bg-acc2/10 border border-acc2/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(155,114,245,0.1)]">
-          <Layers size={32} className="text-acc2" />
-        </div>
-        <h1 className="font-display text-4xl font-bold text-t1 tracking-tight mb-2">
-          {targetLanguage} Vocabulary
-        </h1>
-        <p className="text-t2 text-sm uppercase tracking-[2px]">
-          Card {currentIndex + 1} of {cards.length}
-        </p>
-
-        {/* Regenerate button */}
-        <button
-          onClick={handleRegenerate}
-          disabled={regenerating}
-          style={{
-            marginTop: "1rem",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 14px",
-            borderRadius: "8px",
-            border: "1px solid var(--c-border)",
-            background: "var(--c-surface2)",
-            color: "var(--c-text3)",
-            fontSize: "0.75rem",
-            cursor: regenerating ? "not-allowed" : "pointer",
-            opacity: regenerating ? 0.5 : 1,
-            transition: "all 0.2s",
-          }}
-          title="Generate fresh AI content for this language"
-        >
-          <RefreshCw size={12} style={{ animation: regenerating ? "spin 1s linear infinite" : "none" }} />
-          {regenerating ? "Regenerating..." : "Regenerate with AI"}
-        </button>
-      </div>
-
-      {/* Card Container */}
-      <div
-        className="w-full max-w-sm h-72 relative cursor-pointer group rounded-3xl"
-        style={{ perspective: "1000px" }}
-        onClick={() => setIsFlipped(!isFlipped)}
-      >
-        <div
-          className="w-full h-full absolute top-0 left-0 transition-transform duration-700 glass-card flex items-center justify-center flex-col shadow-2xl"
-          style={{
-            transformStyle: "preserve-3d",
-            transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-            backgroundColor: isFlipped ? "var(--c-surface3)" : "var(--c-surface2)",
-          }}
-        >
-          {/* Front */}
-          <div
-            className="absolute w-full h-full flex flex-col items-center justify-center backface-hidden p-8"
-            style={{ backfaceVisibility: "hidden" }}
-          >
-            <span className="text-sm font-bold text-acc2 uppercase tracking-[2px] mb-6 block absolute top-8">
-              {currentCard.language}
-            </span>
-            <h2 className="text-5xl font-display font-bold text-t1 text-center">
-              {currentCard.word}
-            </h2>
-            {currentCard.category && (
-              <span style={{
-                position: "absolute", bottom: "3.5rem",
-                fontSize: "0.7rem", color: "var(--c-text3)",
-                background: "var(--c-surface3)", padding: "2px 8px",
-                borderRadius: "999px", border: "1px solid var(--c-border)"
-              }}>
-                {currentCard.category}
-              </span>
-            )}
-            <div className="text-t3 text-xs flex items-center gap-2 mt-8 absolute bottom-8 opacity-60">
-              <RotateCw size={14} /> Click to flip
+    <div className="min-h-screen bg-washi pt-40 pb-32 flex flex-col items-center">
+      <div className="container-premium max-w-4xl text-center">
+        
+        <div className="flex flex-col items-center mb-16">
+            <div className="flex items-center gap-3 mb-6">
+                <span className="pill-badge text-sakura border-sakura">Vocabulary Lab</span>
+                <span className="text-ink/20 font-black">/</span>
+                <span className="text-[10px] font-black text-ink uppercase tracking-widest">{targetLanguage} Synthesis</span>
             </div>
-          </div>
-
-          {/* Back */}
-          <div
-            className="absolute w-full h-full flex flex-col items-center justify-center backface-hidden p-8"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-          >
-            <span className="text-sm font-bold text-acc uppercase tracking-[2px] mb-4 block absolute top-8">
-              English
-            </span>
-            <h2 className="text-4xl font-display font-bold text-acc text-center mb-2">
-              {currentCard.translation}
-            </h2>
-            {currentCard.pronunciation && (
-              <p className="text-t2 text-sm italic opacity-80 mt-2">
-                "{currentCard.pronunciation}"
-              </p>
-            )}
-          </div>
+            <h1 className="text-5xl md:text-7xl font-black text-ink tracking-tighter leading-none mb-6 uppercase">Flash <span className="text-sakura italic">Cards.</span></h1>
+            <div className="flex items-center gap-4">
+                <span className="text-[10px] font-black text-ink/20 uppercase tracking-widest">Node {currentIndex + 1} of {cards.length}</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-ink/10"></div>
+                <button
+                    onClick={handleRegenerate}
+                    disabled={regenerating}
+                    className="flex items-center gap-2 text-[10px] font-black text-sakura uppercase tracking-widest hover:opacity-70 transition-opacity"
+                >
+                    <RefreshCw size={12} strokeWidth={3} className={regenerating ? "animate-spin" : ""} />
+                    {regenerating ? "Regenerating..." : "Reload AI Content"}
+                </button>
+            </div>
         </div>
-      </div>
 
-      <div className="mt-12 w-full max-w-sm flex gap-4">
-        <button
-          onClick={handleNext}
-          className="btn-primary w-full py-4 flex items-center justify-center gap-2 group bg-acc border-acc hover:shadow-[0_0_30px_rgba(13,255,176,0.2)]"
+        {/* Card Container */}
+        <div
+            className="w-full max-w-xl aspect-[4/3] relative cursor-pointer group"
+            style={{ perspective: "2000px" }}
+            onClick={() => setIsFlipped(!isFlipped)}
         >
-          Next Card <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-        </button>
+            <motion.div
+                className="w-full h-full relative preserve-3d"
+                initial={false}
+                animate={{ rotateY: isFlipped ? 180 : 0 }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                style={{ transformStyle: "preserve-3d" }}
+            >
+                {/* Front */}
+                <div
+                    className="absolute inset-0 backface-hidden glass-card !p-16 !rounded-[3rem] flex flex-col items-center justify-center border-4 border-ink shadow-2xl shadow-ink/20 bg-white"
+                    style={{ backfaceVisibility: "hidden" }}
+                >
+                    <div className="absolute top-10 left-10 flex items-center gap-3 text-ink/20">
+                        <Languages size={20} strokeWidth={2.5} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">{targetLanguage} Protocol</span>
+                    </div>
+                    
+                    <h2 className="text-6xl md:text-8xl font-black text-ink tracking-tighter text-center leading-none">
+                        {currentCard.word}
+                    </h2>
+                    
+                    <div className="absolute bottom-10 flex items-center gap-3 text-ink/20 animate-bounce">
+                        <RotateCw size={14} strokeWidth={3} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Audit Logic</span>
+                    </div>
+                </div>
+
+                {/* Back */}
+                <div
+                    className="absolute inset-0 backface-hidden glass-card !p-16 !rounded-[3rem] flex flex-col items-center justify-center border-4 border-sakura shadow-2xl shadow-sakura/20 bg-ink"
+                    style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                >
+                    <div className="absolute top-10 left-10 flex items-center gap-3 text-sakura/40">
+                        <Sparkles size={20} strokeWidth={2.5} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Neural Output</span>
+                    </div>
+                    
+                    <h2 className="text-5xl md:text-7xl font-black text-sakura tracking-tighter text-center leading-tight mb-4">
+                        {currentCard.translation}
+                    </h2>
+                    
+                    {currentCard.pronunciation && (
+                        <p className="text-xl font-bold text-white/40 italic">
+                            / {currentCard.pronunciation} /
+                        </p>
+                    )}
+                </div>
+            </motion.div>
+        </div>
+
+        <div className="mt-16 w-full max-w-xl grid grid-cols-3 gap-6">
+            <button
+                onClick={() => submitSRS(1)}
+                className="btn-premium-outline !py-6 text-lg !text-rose-500 !border-rose-500 hover:!bg-rose-500 hover:!text-white"
+            >
+                Hard
+            </button>
+            <button
+                onClick={() => submitSRS(3)}
+                className="btn-premium-outline !py-6 text-lg !text-amber-500 !border-amber-500 hover:!bg-amber-500 hover:!text-white"
+            >
+                Good
+            </button>
+            <button
+                onClick={() => submitSRS(5)}
+                className="btn-premium !py-6 text-lg !bg-emerald-600 hover:!bg-emerald-700"
+            >
+                Easy
+            </button>
+        </div>
+
+        <div className="mt-12 flex items-center justify-center gap-8 opacity-20">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink"><Zap size={14}/> Fast Mastery</div>
+            <div className="w-1.5 h-1.5 rounded-full bg-ink"></div>
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink"><Languages size={14}/> Dialect Logic</div>
+        </div>
       </div>
     </div>
   );

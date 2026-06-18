@@ -2,169 +2,148 @@ import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { UserPlus, Mail, Lock, User, Sparkles, CheckCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { User, Mail, Lock, Globe, ArrowRight, Cpu, Sparkles } from "lucide-react";
 
 function Signup() {
-  const [name, setName]         = useState("");
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    nativeLanguage: "English",
+    targetLanguage: "Spanish"
+  });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
-        name,
-        email,
-        password,
-      });
-      localStorage.setItem("userInfo", JSON.stringify(res.data));
-      toast.success("Account created successfully! ✨");
-      navigate("/");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed");
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, formData);
+      if (res.data.success) {
+        localStorage.setItem("userInfo", JSON.stringify(res.data.data));
+        toast.success("Profile Provisioned");
+        navigate("/");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Provisioning Failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const getPasswordStrength = () => {
-    if (password.length === 0) return 0;
-    if (password.length < 6) return 33;
-    if (password.length < 10) return 66;
-    return 100;
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 py-20 animate-fadeUp">
-      <div className="w-full max-w-[540px]">
-        
-        {/* Header */}
-        <div className="text-center mb-10">
-            <div className="w-16 h-16 rounded-2xl bg-acc2/10 border border-acc2/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(155,114,245,0.1)]">
-                <Sparkles size={32} className="text-acc2" />
+    <div className="min-h-screen bg-washi flex items-center justify-center p-6 py-32">
+      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')] opacity-5 pointer-events-none"></div>
+      
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-2xl glass-card !p-12 relative z-10"
+      >
+        <div className="text-center mb-12">
+            <div className="w-16 h-16 rounded-2xl bg-ink text-sakura flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-ink/20">
+                <Sparkles size={32} strokeWidth={2} />
             </div>
-            <h1 className="font-display text-4xl font-bold text-t1 tracking-tight mb-3">
-                Join the <span className="gradient-text">Elite</span>
-            </h1>
-            <p className="text-t2 text-sm">
-                Already have an account? 
-                <Link to="/login" className="text-acc2 hover:underline ml-1 font-medium">Log in instead →</Link>
+            <h1 className="text-4xl font-black text-ink tracking-tighter mb-4">Create Identity.</h1>
+            <p className="text-[10px] font-black text-ink/40 uppercase tracking-[0.2em]">Neural Network Enrollment</p>
+        </div>
+
+        <form onSubmit={handleSignup} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+                <label className="text-[10px] font-black text-ink uppercase tracking-widest ml-1">Full Name</label>
+                <div className="relative group">
+                    <User className="absolute left-5 top-1/2 -translate-y-1/2 text-ink/20 group-focus-within:text-sakura transition-colors" size={20} />
+                    <input
+                        type="text"
+                        required
+                        className="w-full bg-white/50 border-2 border-ink/5 p-5 pl-14 rounded-2xl focus:border-sakura focus:bg-white outline-none text-sm font-bold transition-all placeholder:text-ink/20"
+                        placeholder="Operator Name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                </div>
+            </div>
+            <div className="space-y-3">
+                <label className="text-[10px] font-black text-ink uppercase tracking-widest ml-1">Email Address</label>
+                <div className="relative group">
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-ink/20 group-focus-within:text-sakura transition-colors" size={20} />
+                    <input
+                        type="email"
+                        required
+                        className="w-full bg-white/50 border-2 border-ink/5 p-5 pl-14 rounded-2xl focus:border-sakura focus:bg-white outline-none text-sm font-bold transition-all placeholder:text-ink/20"
+                        placeholder="name@neural.net"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-ink uppercase tracking-widest ml-1">Access Cipher (Password)</label>
+            <div className="relative group">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-ink/20 group-focus-within:text-sakura transition-colors" size={20} />
+                <input
+                    type="password"
+                    required
+                    className="w-full bg-white/50 border-2 border-ink/5 p-5 pl-14 rounded-2xl focus:border-sakura focus:bg-white outline-none text-sm font-bold transition-all placeholder:text-ink/20"
+                    placeholder="Min. 8 characters"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+                <label className="text-[10px] font-black text-ink uppercase tracking-widest ml-1">Primary Language</label>
+                <select 
+                    className="w-full bg-white/50 border-2 border-ink/5 p-5 rounded-2xl focus:border-sakura outline-none text-sm font-bold transition-all appearance-none cursor-pointer"
+                    value={formData.nativeLanguage}
+                    onChange={(e) => setFormData({ ...formData, nativeLanguage: e.target.value })}
+                >
+                    <option>English</option>
+                    <option>Hindi</option>
+                    <option>Spanish</option>
+                    <option>French</option>
+                </select>
+            </div>
+            <div className="space-y-3">
+                <label className="text-[10px] font-black text-ink uppercase tracking-widest ml-1">Learning Target</label>
+                <select 
+                    className="w-full bg-white/50 border-2 border-ink/5 p-5 rounded-2xl focus:border-sakura outline-none text-sm font-bold transition-all appearance-none cursor-pointer"
+                    value={formData.targetLanguage}
+                    onChange={(e) => setFormData({ ...formData, targetLanguage: e.target.value })}
+                >
+                    <option>Spanish</option>
+                    <option>French</option>
+                    <option>German</option>
+                    <option>Japanese</option>
+                    <option>Hindi</option>
+                    <option>English</option>
+                </select>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-premium w-full justify-center py-5 text-lg mt-4"
+          >
+            {loading ? "Provisioning..." : "Initialize Identity"}
+            {!loading && <ArrowRight size={22} />}
+          </button>
+        </form>
+
+        <div className="mt-12 pt-10 border-t border-ink/5 text-center">
+            <p className="text-sm font-bold text-ink/40">
+                Already Initialized? <Link to="/login" className="text-sakura hover:underline ml-2 font-black uppercase tracking-widest text-[10px]">Secure Login</Link>
             </p>
         </div>
-
-        {/* Central Card */}
-        <div className="glass-card p-10 relative overflow-hidden group">
-             {/* Decorative Background Element */}
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-acc2/10 rounded-full blur-[100px] group-hover:bg-acc2/15 transition-all duration-500"></div>
-
-            <form onSubmit={handleSignup} className="relative z-10 space-y-6">
-                <div>
-                    <label className="block text-[0.65rem] font-bold text-t3 uppercase tracking-[2px] mb-2.5 ml-1">
-                        Full Name
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-t3">
-                            <User size={16} />
-                        </div>
-                        <input
-                            type="text"
-                            required
-                            placeholder="John Doe"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="pl-11"
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-[0.65rem] font-bold text-t3 uppercase tracking-[2px] mb-2.5 ml-1">
-                        Email Address
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-t3">
-                            <Mail size={16} />
-                        </div>
-                        <input
-                            type="email"
-                            required
-                            placeholder="you@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="pl-11"
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-[0.65rem] font-bold text-t3 uppercase tracking-[2px] mb-2.5 ml-1">
-                        Secret Password
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-t3">
-                            <Lock size={16} />
-                        </div>
-                        <input
-                            type="password"
-                            required
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="pl-11"
-                        />
-                    </div>
-                    {/* Strength Indicator */}
-                    <div className="mt-3 px-1">
-                        <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-[0.6rem] font-bold text-t3 uppercase tracking-[1px]">Security Strength</span>
-                            <span className="text-[0.6rem] font-bold text-acc2 uppercase">{getPasswordStrength() === 100 ? 'Solid' : 'Analyzing...'}</span>
-                        </div>
-                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                            <div 
-                                className="h-full bg-acc2 transition-all duration-500" 
-                                style={{ width: `${getPasswordStrength()}%` }}
-                            ></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="pt-2">
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="btn-primary w-full py-4 rounded-2xl bg-acc2 border-acc2 hover:shadow-[0_0_30px_rgba(155,114,245,0.3)] flex items-center justify-center gap-2 group transition-all"
-                    >
-                        {loading ? "Creating System Access..." : (
-                            <>
-                                Create Your Account
-                                <CheckCircle size={18} className="group-hover:scale-110 transition-transform" />
-                            </>
-                        )}
-                    </button>
-                </div>
-
-                <p className="text-[0.65rem] text-center text-t3 leading-relaxed">
-                    By joining, you agree to our <span className="text-t2 underline cursor-pointer">Terms of Logic</span> and <span className="text-t2 underline cursor-pointer">Privacy Protocol</span>.
-                </p>
-            </form>
-        </div>
-
-        <div className="mt-12 grid grid-cols-2 gap-8 px-4">
-            <div className="text-center group">
-                <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🌍</div>
-                <div className="text-[0.65rem] font-bold text-t1 uppercase tracking-[1px]">Global Network</div>
-                <div className="text-[0.6rem] text-t3 mt-1 underline">Join 50k+ nodes</div>
-            </div>
-            <div className="text-center group">
-                <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">⚡</div>
-                <div className="text-[0.65rem] font-bold text-t1 uppercase tracking-[1px]">Instant Access</div>
-                <div className="text-[0.6rem] text-t3 mt-1 underline">Sub-second init</div>
-            </div>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

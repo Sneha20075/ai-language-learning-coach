@@ -2,514 +2,419 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, ImagePlus, Loader2, RefreshCw, Video, VideoOff,
-  Pencil, Eraser, Trash2, Sparkles, RotateCcw
+  Pencil, Eraser, Trash2, Sparkles, RotateCcw, Zap, ChevronRight, Activity, Cpu, Scan, Box
 } from "lucide-react";
 
-// ─── Tab constants ────────────────────────────────────────────────────────────
-const TAB_CAMERA  = "camera";
-const TAB_DRAW    = "draw";
+const TAB_CAMERA = "camera";
+const TAB_DRAW = "draw";
 
 function ObjectDetection() {
-  const [activeTab, setActiveTab]       = useState(TAB_CAMERA);
-  const [targetLanguage, setTargetLanguage] = useState(
-    () => localStorage.getItem("targetLanguage") || "Spanish"
-  );
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(TAB_CAMERA);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [targetLanguage, setTargetLanguage] = useState(() => localStorage.getItem("targetLanguage") || "Spanish");
 
-  // Sync language from Navbar
-  useEffect(() => {
-    const onStorage = () => setTargetLanguage(localStorage.getItem("targetLanguage") || "Spanish");
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  // Auth guard
-  useEffect(() => {
-    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-    if (!userInfo?.token) {
-      toast.warning("Please login to access this feature.");
-      navigate("/login");
-    }
-  }, [navigate]);
-
-  return (
-    <div style={{ minHeight: "100vh", paddingTop: "6rem", paddingBottom: "4rem", paddingLeft: "1.5rem", paddingRight: "1.5rem" }}>
-      {/* Header */}
-      <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center", marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "2.4rem", fontWeight: 800, color: "var(--c-text1)", marginBottom: "0.5rem" }}>
-          Visual <span style={{ background: "linear-gradient(90deg, #0DFFB0, #7C5CFC)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Learning Lab</span>
-        </h1>
-        <p style={{ color: "var(--c-text2)", fontSize: "1rem" }}>
-          Scan objects around you — or draw & let AI guess — to learn words in <strong style={{ color: "var(--c-acc)" }}>{targetLanguage}</strong>
-        </p>
-
-        {/* Tabs */}
-        <div style={{ display: "inline-flex", gap: 8, marginTop: "1.5rem", background: "var(--c-surface2)", borderRadius: 12, padding: 4, border: "1px solid var(--c-border)" }}>
-          <TabBtn active={activeTab === TAB_CAMERA} onClick={() => setActiveTab(TAB_CAMERA)} icon={<Camera size={15} />} label="Scan Objects" />
-          <TabBtn active={activeTab === TAB_DRAW}   onClick={() => setActiveTab(TAB_DRAW)}   icon={<Pencil  size={15} />} label="✏️ Draw & Learn" />
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{ maxWidth: 780, margin: "0 auto" }}>
-        {activeTab === TAB_CAMERA
-          ? <CameraTab targetLanguage={targetLanguage} />
-          : <DrawTab   targetLanguage={targetLanguage} />
-        }
-      </div>
-    </div>
-  );
-}
-
-// ─── Small reusable TabBtn ────────────────────────────────────────────────────
-function TabBtn({ active, onClick, icon, label }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "flex", alignItems: "center", gap: 6,
-        padding: "8px 18px", borderRadius: 9, border: "none", cursor: "pointer",
-        fontSize: "0.84rem", fontWeight: 600, transition: "all 0.2s",
-        background: active ? "var(--c-acc)" : "transparent",
-        color:      active ? "#060810"        : "var(--c-text2)",
-        boxShadow:  active ? "0 2px 12px rgba(13,255,176,0.25)" : "none",
-      }}
-    >
-      {icon} {label}
-    </button>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CAMERA TAB — upload image or use live camera to detect objects
-// ═══════════════════════════════════════════════════════════════════════════════
-function CameraTab({ targetLanguage }) {
-  const [mode, setMode]               = useState("upload"); // "upload" | "live"
-  const [imageBase64, setImageBase64] = useState(null);
-  const [imageMimeType, setImageMimeType] = useState("image/jpeg");
-  const [results, setResults]         = useState(null);
-  const [loading, setLoading]         = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-
-  const videoRef  = useRef(null);
-  const streamRef = useRef(null);
-
-  // Start camera
-  const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      setCameraActive(true);
-      setResults(null);
-      setImageBase64(null);
-    } catch (err) {
-      toast.error("Camera access denied. Please allow camera in browser settings.");
-      setMode("upload");
-    }
-  }, []);
-
-  // Stop camera
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    setCameraActive(false);
-  }, []);
-
-  // Capture frame from live camera
-  const captureFrame = () => {
-    const video  = videoRef.current;
-    if (!video) return;
-    const canvas = document.createElement("canvas");
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-    setImageBase64(dataUrl);
-    stopCamera();
-    setMode("upload"); // show preview
-  };
-
-  // Upload from file
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageBase64(reader.result);
-      setImageMimeType(file.type);
-      setResults(null);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Detect via backend
-  const handleDetect = async () => {
-    if (!imageBase64) return;
-    setLoading(true);
-    try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/object-detection/detect`,
-        { imageBase64: imageBase64.split(",")[1], imageMimeType, targetLanguage },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
-      );
-      if (res.data.success) {
-        setResults(res.data.data.detectedObjects);
-        if (res.data.usedFallback) {
-          toast.info("Showing sample results. Add a valid Gemini API key for real detection!", { autoClose: 5000 });
-        }
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Detection failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const reset = () => {
-    setImageBase64(null);
-    setResults(null);
-    stopCamera();
-  };
-
-  return (
-    <div style={{ background: "var(--c-surface1)", border: "1px solid var(--c-border)", borderRadius: 20, overflow: "hidden" }}>
-      {/* Top bar */}
-      <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-        <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--c-text1)", background: "var(--c-surface3)", padding: "4px 12px", borderRadius: 8, border: "1px solid var(--c-border)" }}>
-          Target: <span style={{ color: "var(--c-acc)" }}>{targetLanguage}</span>
-        </span>
-        <div style={{ display: "flex", gap: 8 }}>
-          {/* Mode toggle */}
-          <button
-            onClick={() => { if (mode === "upload") { setMode("live"); startCamera(); } else { stopCamera(); setMode("upload"); } }}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--c-border)", background: mode === "live" ? "rgba(13,255,176,0.1)" : "var(--c-surface2)", color: mode === "live" ? "var(--c-acc)" : "var(--c-text2)", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
-          >
-            {mode === "live" ? <><VideoOff size={13} /> Stop Camera</> : <><Video size={13} /> Live Camera</>}
-          </button>
-          {imageBase64 && (
-            <button onClick={reset} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--c-border)", background: "var(--c-surface2)", color: "var(--c-text2)", fontSize: "0.78rem", cursor: "pointer" }}>
-              <RefreshCw size={13} /> Reset
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div style={{ padding: "1.5rem" }}>
-        {/* Live Camera View */}
-        {mode === "live" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-            <div style={{ width: "100%", borderRadius: 16, overflow: "hidden", border: "2px solid var(--c-acc)", position: "relative" }}>
-              <video ref={videoRef} autoPlay playsInline style={{ width: "100%", maxHeight: 400, objectFit: "cover", display: "block" }} />
-              <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(13,255,176,0.15)", border: "1px solid var(--c-acc)", borderRadius: 8, padding: "3px 10px", fontSize: "0.72rem", color: "var(--c-acc)", fontWeight: 700 }}>
-                🔴 LIVE
-              </div>
-            </div>
-            <button onClick={captureFrame} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 32px", borderRadius: 12, background: "var(--c-acc)", color: "#060810", fontWeight: 700, fontSize: "0.9rem", border: "none", cursor: "pointer", boxShadow: "0 0 20px rgba(13,255,176,0.3)" }}>
-              <Camera size={18} /> Capture & Analyze
-            </button>
-          </div>
-        )}
-
-        {/* Upload / Preview View */}
-        {mode === "upload" && (
-          !imageBase64 ? (
-            <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4rem 2rem", border: "2px dashed var(--c-border)", borderRadius: 16, cursor: "pointer", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(13,255,176,0.5)"; e.currentTarget.style.background = "var(--c-surface2)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--c-border)"; e.currentTarget.style.background = "transparent"; }}
-            >
-              <div style={{ padding: 16, borderRadius: 14, background: "var(--c-surface3)", marginBottom: 12 }}>
-                <ImagePlus size={32} style={{ color: "var(--c-text3)" }} />
-              </div>
-              <span style={{ fontWeight: 700, color: "var(--c-text1)", marginBottom: 4 }}>Click to upload an image</span>
-              <span style={{ fontSize: "0.78rem", color: "var(--c-text3)" }}>JPG, PNG, WebP — or use Live Camera above</span>
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileUpload} />
-            </label>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1.5rem" }}>
-              <img src={imageBase64} alt="Preview" style={{ width: "100%", maxHeight: 380, objectFit: "contain", borderRadius: 14, border: "1px solid var(--c-border)" }} />
-
-              {!results ? (
-                <button onClick={handleDetect} disabled={loading}
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 36px", borderRadius: 12, background: "var(--c-acc)", color: "#060810", fontWeight: 700, fontSize: "0.9rem", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, boxShadow: "0 0 20px rgba(13,255,176,0.25)" }}
-                >
-                  {loading ? <><Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} /> Analyzing...</> : <><Camera size={18} /> Detect Objects</>}
-                </button>
-              ) : (
-                <ResultGrid results={results} targetLanguage={targetLanguage} />
-              )}
-            </div>
-          )
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ResultGrid({ results, targetLanguage }) {
-  return (
-    <div style={{ width: "100%" }}>
-      <h3 style={{ color: "var(--c-text1)", fontWeight: 700, marginBottom: "1rem", display: "flex", alignItems: "center", gap: 8 }}>
-        Detected Objects <span style={{ fontSize: "0.75rem", padding: "2px 10px", background: "rgba(13,255,176,0.1)", color: "var(--c-acc)", borderRadius: 999 }}>{results.length} found</span>
-      </h3>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-        {results.map((obj, i) => (
-          <div key={i} style={{ background: "var(--c-surface2)", border: "1px solid var(--c-border)", borderRadius: 14, padding: "1rem", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(13,255,176,0.3)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--c-border)"; e.currentTarget.style.transform = "none"; }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--c-text3)", textTransform: "uppercase", letterSpacing: "1px" }}>English</span>
-              <span style={{ fontSize: "0.68rem", color: "var(--c-acc)" }}>{Math.round((obj.confidence || 0.85) * 100)}%</span>
-            </div>
-            <p style={{ color: "var(--c-text2)", fontWeight: 500, marginBottom: "0.75rem" }}>{obj.objectName}</p>
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--c-text3)", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: 4 }}>{targetLanguage}</span>
-            <p style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--c-acc2)", fontStyle: "italic" }}>{obj.translation}</p>
-            {obj.pronunciation && <p style={{ fontSize: "0.72rem", color: "var(--c-text3)", marginTop: 4 }}>"{obj.pronunciation}"</p>}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// DRAW TAB — kids draw something, AI guesses + teaches the word
-// ═══════════════════════════════════════════════════════════════════════════════
-function DrawTab({ targetLanguage }) {
+  // --- CAMERA LOGIC ---
+  const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const [drawing, setDrawing]     = useState(false);
-  const [tool, setTool]           = useState("pen");   // "pen" | "eraser"
-  const [color, setColor]         = useState("#0DFFB0");
+  const [stream, setStream] = useState(null);
+
+  // --- DRAWING LOGIC ---
+  const drawCanvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [tool, setTool] = useState("pencil");
   const [brushSize, setBrushSize] = useState(6);
-  const [result, setResult]       = useState(null);
-  const [loading, setLoading]     = useState(false);
-  const [hasDrawn, setHasDrawn]   = useState(false);
-  const lastPos = useRef(null);
+  const [brushColor, setBrushColor] = useState("#1E1A1D");
 
-  // Setup canvas with dark background
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    ctx.fillStyle = "#0d1117";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }, []);
+    if (activeTab === TAB_DRAW && drawCanvasRef.current) {
+      const canvas = drawCanvasRef.current;
+      const ctx = canvas.getContext("2d");
+      canvas.width = 800;
+      canvas.height = 450;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }, [activeTab]);
 
-  const getPos = (e, canvas) => {
+  const getCoordinates = (e) => {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches?.[0];
-    const clientX = touch ? touch.clientX : e.clientX;
-    const clientY = touch ? touch.clientY : e.clientY;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    if (e.touches && e.touches.length > 0) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY
+      };
+    }
+
     return {
-      x: (clientX - rect.left) * (canvas.width  / rect.width),
-      y: (clientY - rect.top)  * (canvas.height / rect.height)
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
     };
   };
 
   const startDrawing = (e) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    lastPos.current = getPos(e, canvas);
-    setDrawing(true);
-    setHasDrawn(true);
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const { x, y } = getCoordinates(e);
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = tool === "eraser" ? "#FFFFFF" : brushColor;
+    
+    setIsDrawing(true);
+    if (e.cancelable) e.preventDefault();
   };
 
   const draw = (e) => {
-    e.preventDefault();
-    if (!drawing) return;
-    const canvas = canvasRef.current;
-    const ctx    = canvas.getContext("2d");
-    const pos    = getPos(e, canvas);
+    if (!isDrawing) return;
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const { x, y } = getCoordinates(e);
 
-    ctx.beginPath();
-    ctx.moveTo(lastPos.current.x, lastPos.current.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = tool === "eraser" ? "#0d1117" : color;
-    ctx.lineWidth   = tool === "eraser" ? brushSize * 4 : brushSize;
-    ctx.lineCap     = "round";
-    ctx.lineJoin    = "round";
-    ctx.globalAlpha = 1;
+    ctx.lineTo(x, y);
     ctx.stroke();
-    lastPos.current = pos;
+    if (e.cancelable) e.preventDefault();
   };
 
-  const stopDrawing = () => setDrawing(false);
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
 
   const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    const ctx    = canvas.getContext("2d");
-    ctx.fillStyle = "#0d1117";
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setResult(null);
-    setHasDrawn(false);
   };
 
   const analyzeDrawing = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !hasDrawn) {
-      toast.info("Draw something first! 🎨");
-      return;
-    }
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
     setLoading(true);
-    try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const imageBase64 = canvas.toDataURL("image/png").split(",")[1];
+    const base64 = canvas.toDataURL("image/png").split(",")[1];
 
-      const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/object-detection/analyze-drawing`,
-        { imageBase64, imageMimeType: "image/png", targetLanguage },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
-      );
+    try {
+      const userInfoStr = localStorage.getItem("userInfo");
+      const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
+
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/object-detection/analyze-drawing`, {
+        imageBase64: base64,
+        targetLanguage
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (res.data.success) {
-        setResult(res.data.data);
+        setResults(res.data.data);
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Could not analyze drawing.");
+    } catch (err) {
+      toast.error("Sketch analysis failed. Verify identity.");
     } finally {
       setLoading(false);
     }
   };
 
-  const colors = ["#0DFFB0", "#7C5CFC", "#FF6B6B", "#FFD93D", "#4ECDC4", "#FF9F43", "#ffffff", "#aaaaaa"];
+  const startCamera = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      setStream(s);
+      if (videoRef.current) videoRef.current.srcObject = s;
+    } catch (err) {
+      toast.error("Optic access denied.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      setStream(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === TAB_CAMERA) startCamera();
+    else stopCamera();
+    return () => stopCamera();
+  }, [activeTab]);
+
+  const captureAndDetect = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    setLoading(true);
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    const base64 = canvas.toDataURL("image/jpeg").split(",")[1];
+
+    try {
+      const userInfoStr = localStorage.getItem("userInfo");
+      const token = userInfoStr ? JSON.parse(userInfoStr).token : null;
+
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/object-detection/detect`, {
+        imageBase64: base64,
+        targetLanguage
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) setResults(res.data.data);
+    } catch (err) {
+      toast.error("Analysis interrupted. Verify identity.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      {/* Toolbar */}
-      <div style={{ background: "var(--c-surface2)", borderRadius: 14, padding: "12px 16px", border: "1px solid var(--c-border)", display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        {/* Pen / Eraser */}
-        <div style={{ display: "flex", gap: 6 }}>
-          <ToolBtn active={tool === "pen"}    onClick={() => setTool("pen")}    icon={<Pencil size={14}/>} label="Pen" />
-          <ToolBtn active={tool === "eraser"} onClick={() => setTool("eraser")} icon={<Eraser size={14}/>} label="Eraser" />
+    <div className="min-h-screen bg-washi pt-40 pb-32">
+      <div className="container-premium">
+        
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-20 border-b-4 border-ink pb-12">
+            <div>
+                <div className="flex items-center gap-3 mb-6">
+                    <span className="pill-badge text-sakura border-sakura">Linguistic Optics</span>
+                    <span className="text-ink/20 font-black">/</span>
+                    <span className="text-[10px] font-black text-ink uppercase tracking-widest">v2.5 Scanning Simulation</span>
+                </div>
+                <h1 className="text-5xl md:text-7xl font-black text-ink tracking-tighter leading-none mb-4 uppercase">Visual <span className="text-sakura italic">Lens.</span></h1>
+                <p className="text-xl text-ink/40 font-bold max-w-xl">Environment-to-Language transition via high-density neural analysis.</p>
+            </div>
+            
+            <div className="flex bg-ink p-1.5 rounded-2xl shadow-2xl shadow-ink/20">
+                <button 
+                    onClick={() => { setActiveTab(TAB_CAMERA); setResults(null); }}
+                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${activeTab === TAB_CAMERA ? 'bg-white text-ink shadow-lg' : 'text-white/40 hover:text-white'}`}
+                >
+                    Optical Sensor
+                </button>
+                <button 
+                    onClick={() => { setActiveTab(TAB_DRAW); setResults(null); }}
+                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${activeTab === TAB_DRAW ? 'bg-white text-ink shadow-lg' : 'text-white/40 hover:text-white'}`}
+                >
+                    Sketch Lab
+                </button>
+            </div>
         </div>
 
-        {/* Colors */}
-        <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-          {colors.map(c => (
-            <button key={c} onClick={() => { setColor(c); setTool("pen"); }}
-              style={{ width: 22, height: 22, borderRadius: "50%", background: c, border: color === c && tool === "pen" ? "3px solid white" : "2px solid transparent", cursor: "pointer", transition: "all 0.15s" }}
-            />
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+            
+            {/* INTERFACE AREA */}
+            <div className="lg:col-span-7">
+                <div className="relative rounded-[3rem] overflow-hidden bg-ink p-4 shadow-[0_40px_100px_-20px_rgba(38,29,34,0.3)]">
+                    {activeTab === TAB_CAMERA ? (
+                        <div className="relative aspect-video bg-neutral-900 rounded-[2rem] overflow-hidden">
+                            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-80" />
+                            <canvas ref={canvasRef} className="hidden" />
+                            
+                            {/* Scanning Overlay */}
+                            <div className="absolute inset-0 border-[40px] border-transparent group-hover:border-sakura/5 transition-all pointer-events-none"></div>
+                            <motion.div 
+                                animate={{ top: ["0%", "100%", "0%"] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                className="absolute left-0 w-full h-1 bg-sakura/30 blur-sm z-10"
+                            ></motion.div>
+
+                            {!stream && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20">
+                                    <VideoOff size={64} strokeWidth={1} className="mb-6" />
+                                    <button onClick={startCamera} className="btn-premium !bg-sakura">Initialize Optics</button>
+                                </div>
+                            )}
+
+                            {stream && (
+                                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-8">
+                                    <button 
+                                        onClick={captureAndDetect}
+                                        disabled={loading}
+                                        className="w-20 h-20 rounded-full bg-white border-8 border-sakura/20 flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all duration-500"
+                                    >
+                                        {loading ? <Loader2 className="animate-spin text-sakura" size={32} /> : <div className="w-12 h-12 rounded-full bg-sakura" />}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-[2rem] p-6">
+                            <div className="relative aspect-video bg-white rounded-2xl overflow-hidden border-4 border-ink">
+                                <canvas 
+                                    ref={drawCanvasRef}
+                                    onMouseDown={startDrawing}
+                                    onMouseMove={draw}
+                                    onMouseUp={stopDrawing}
+                                    onMouseLeave={stopDrawing}
+                                    onTouchStart={startDrawing}
+                                    onTouchMove={draw}
+                                    onTouchEnd={stopDrawing}
+                                    className="w-full h-full cursor-crosshair touch-none"
+                                />
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center justify-between gap-4 mt-6 p-4 bg-ink/5 rounded-2xl">
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setTool("pencil")}
+                                        className={`p-3 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition-all ${tool === "pencil" ? "bg-ink text-white" : "text-ink/60 hover:bg-ink/5"}`}
+                                    >
+                                        <Pencil size={14} /> Pencil
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setTool("eraser")}
+                                        className={`p-3 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition-all ${tool === "eraser" ? "bg-ink text-white" : "text-ink/60 hover:bg-ink/5"}`}
+                                    >
+                                        <Eraser size={14} /> Eraser
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={clearCanvas}
+                                        className="p-3 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-all"
+                                    >
+                                        <Trash2 size={14} /> Clear
+                                    </button>
+                                </div>
+                                
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black text-ink/40 uppercase tracking-widest">Size</span>
+                                        <input 
+                                            type="range" 
+                                            min="2" 
+                                            max="20" 
+                                            value={brushSize} 
+                                            onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                                            className="w-20 accent-ink cursor-pointer"
+                                        />
+                                        <span className="text-xs font-black text-ink w-8">{brushSize}px</span>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5">
+                                        {["#1E1A1D", "#E05A47", "#3B82F6", "#10B981"].map((c) => (
+                                            <button 
+                                                key={c}
+                                                type="button"
+                                                onClick={() => { setBrushColor(c); setTool("pencil"); }}
+                                                className={`w-6 h-6 rounded-full border-2 transition-all ${brushColor === c && tool === "pencil" ? "border-sakura scale-110" : "border-transparent"}`}
+                                                style={{ backgroundColor: c }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button 
+                                    type="button"
+                                    onClick={analyzeDrawing}
+                                    disabled={loading}
+                                    className="btn-premium !bg-sakura !py-3 !px-6 text-xs flex items-center gap-2"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+                                    Analyze
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                
+                <div className="mt-12 flex items-center gap-6 opacity-20">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink"><Scan size={14}/> Auto-Detection</div>
+                    <div className="w-1 h-1 rounded-full bg-ink"></div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink"><Cpu size={14}/> Neural Link</div>
+                    <div className="w-1 h-1 rounded-full bg-ink"></div>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink"><Box size={14}/> Reality Mapping</div>
+                </div>
+            </div>
+
+            {/* RESULTS AREA */}
+            <div className="lg:col-span-5 space-y-8">
+                <AnimatePresence mode="wait">
+                    {!results ? (
+                        <motion.div 
+                            key="waiting"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="glass-card !border-dashed !border-ink/20 flex flex-col items-center justify-center py-32 text-ink/20"
+                        >
+                            <Activity size={48} strokeWidth={1} className="mb-6 opacity-40 animate-pulse" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em]">Waiting for Sensor Input</p>
+                        </motion.div>
+                    ) : (
+                        <motion.div 
+                            key="results"
+                            initial={{ opacity: 0, x: 40 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="space-y-8"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-[10px] font-black text-sakura uppercase tracking-[0.3em] flex items-center gap-3">
+                                    <Zap size={14} strokeWidth={3} fill="currentColor" /> Intelligence Found
+                                </h3>
+                                <span className="text-[10px] font-black text-ink/20 uppercase tracking-widest">{(results.detectedObjects || []).length} Entities</span>
+                            </div>
+
+                            {results.encouragement && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="p-6 bg-sakura/10 text-sakura border-2 border-sakura/20 rounded-2xl font-black text-xs uppercase tracking-widest text-center"
+                                >
+                                    ✨ {results.encouragement}
+                                </motion.div>
+                            )}
+
+                            {(results.detectedObjects || []).map((obj, i) => (
+                                <motion.div 
+                                    key={i} 
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="glass-card !p-10 !rounded-[2.5rem] relative overflow-hidden"
+                                >
+                                    <div className="flex justify-between items-start mb-10 border-b border-ink/5 pb-6">
+                                        <div>
+                                            <span className="text-[10px] font-black text-sakura uppercase tracking-widest mb-2 block">Source Object</span>
+                                            <h4 className="text-4xl font-black text-ink uppercase tracking-tighter">{obj.objectName}</h4>
+                                        </div>
+                                        <div className="w-14 h-14 rounded-2xl bg-ink text-white flex items-center justify-center shadow-2xl shadow-ink/10">
+                                            <Sparkles size={24} strokeWidth={2.5} />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-8">
+                                        <div className="p-8 bg-ink text-white rounded-[1.5rem]">
+                                            <span className="text-[10px] font-black text-sakura uppercase tracking-widest mb-4 block">Neural Translation</span>
+                                            <p className="text-xl font-black tracking-tight">{obj.translations}</p>
+                                        </div>
+                                        
+                                        <div className="space-y-2">
+                                            <span className="text-[10px] font-black text-ink/20 uppercase tracking-widest mb-2 block">Linguistic Context</span>
+                                            <p className="text-lg text-ink font-bold leading-tight italic">"{obj.example || obj.exampleSentence}"</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    )
+                    }
+                </AnimatePresence>
+            </div>
         </div>
 
-        {/* Brush size */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: "0.7rem", color: "var(--c-text3)" }}>Size</span>
-          <input type="range" min={2} max={20} value={brushSize} onChange={e => setBrushSize(+e.target.value)}
-            style={{ width: 70, accentColor: "var(--c-acc)" }}
-          />
-        </div>
-
-        {/* Clear */}
-        <button onClick={clearCanvas}
-          style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: "auto", padding: "5px 12px", borderRadius: 8, border: "1px solid var(--c-border)", background: "var(--c-surface3)", color: "var(--c-text2)", fontSize: "0.78rem", cursor: "pointer" }}
-        >
-          <Trash2 size={13} /> Clear
-        </button>
       </div>
-
-      {/* Canvas */}
-      <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", border: "2px solid var(--c-border)" }}>
-        <canvas
-          ref={canvasRef}
-          style={{ display: "block", width: "100%", height: 340, cursor: tool === "eraser" ? "cell" : "crosshair", touchAction: "none" }}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-        />
-        {!hasDrawn && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-            <span style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>🎨</span>
-            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "1rem", fontWeight: 600 }}>Draw anything here!</span>
-            <span style={{ color: "rgba(255,255,255,0.15)", fontSize: "0.8rem", marginTop: 4 }}>A dog, a house, a car, a sun…</span>
-          </div>
-        )}
-      </div>
-
-      {/* Analyze button */}
-      <button onClick={analyzeDrawing} disabled={loading || !hasDrawn}
-        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px", borderRadius: 14, background: hasDrawn ? "linear-gradient(135deg, #0DFFB0, #7C5CFC)" : "var(--c-surface3)", color: hasDrawn ? "#060810" : "var(--c-text3)", fontWeight: 800, fontSize: "1rem", border: "none", cursor: hasDrawn ? "pointer" : "not-allowed", transition: "all 0.3s", boxShadow: hasDrawn ? "0 0 24px rgba(13,255,176,0.3)" : "none" }}
-      >
-        {loading
-          ? <><Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} /> AI is thinking...</>
-          : <><Sparkles size={18} /> What did I draw? Guess it! ✨</>
-        }
-      </button>
-
-      {/* Result card */}
-      {result && <DrawingResult result={result} targetLanguage={targetLanguage} onTryAgain={clearCanvas} />}
-    </div>
-  );
-}
-
-function ToolBtn({ active, onClick, icon, label }) {
-  return (
-    <button onClick={onClick}
-      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "1px solid", borderColor: active ? "var(--c-acc)" : "var(--c-border)", background: active ? "rgba(13,255,176,0.1)" : "var(--c-surface3)", color: active ? "var(--c-acc)" : "var(--c-text3)", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
-    >
-      {icon} {label}
-    </button>
-  );
-}
-
-function DrawingResult({ result, targetLanguage, onTryAgain }) {
-  return (
-    <div style={{ background: "var(--c-surface2)", border: "1px solid var(--c-acc)", borderRadius: 20, padding: "1.5rem", boxShadow: "0 0 30px rgba(13,255,176,0.08)" }}>
-      {/* Encouragement banner */}
-      <div style={{ background: "linear-gradient(135deg, rgba(13,255,176,0.12), rgba(124,92,252,0.12))", borderRadius: 12, padding: "12px 16px", marginBottom: "1rem", textAlign: "center" }}>
-        <span style={{ fontSize: "1.5rem" }}>🎉</span>
-        <p style={{ color: "var(--c-acc)", fontWeight: 700, fontSize: "1.05rem", margin: "4px 0 0" }}>
-          {result.encouragement || "Amazing drawing!"}
-        </p>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: "1rem" }}>
-        {/* Guessed object */}
-        <div style={{ background: "var(--c-surface3)", borderRadius: 12, padding: "1rem", textAlign: "center" }}>
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--c-text3)", letterSpacing: "1px", display: "block", marginBottom: 4 }}>I THINK YOU DREW</span>
-          <span style={{ fontSize: "1.6rem", fontWeight: 800, color: "var(--c-text1)" }}>{result.guessedObject}</span>
-        </div>
-
-        {/* Word in target language */}
-        <div style={{ background: "rgba(124,92,252,0.1)", border: "1px solid rgba(124,92,252,0.2)", borderRadius: 12, padding: "1rem", textAlign: "center" }}>
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--c-acc2)", letterSpacing: "1px", display: "block", marginBottom: 4 }}>IN {targetLanguage.toUpperCase()}</span>
-          <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--c-acc2)", fontStyle: "italic" }}>{result.targetWord}</span>
-          {result.pronunciation && <p style={{ fontSize: "0.75rem", color: "var(--c-text3)", marginTop: 4 }}>"{result.pronunciation}"</p>}
-        </div>
-      </div>
-
-      {result.exampleSentence && (
-        <div style={{ background: "var(--c-surface3)", borderRadius: 10, padding: "10px 14px", marginBottom: "0.75rem" }}>
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--c-text3)", display: "block", marginBottom: 4 }}>EXAMPLE SENTENCE</span>
-          <p style={{ color: "var(--c-text2)", fontSize: "0.9rem", margin: 0, fontStyle: "italic" }}>{result.exampleSentence}</p>
-        </div>
-      )}
-
-      {result.funFact && (
-        <div style={{ background: "rgba(255,159,67,0.08)", border: "1px solid rgba(255,159,67,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: "1rem" }}>
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#FF9F43", display: "block", marginBottom: 4 }}>⚡ FUN FACT</span>
-          <p style={{ color: "var(--c-text2)", fontSize: "0.85rem", margin: 0 }}>{result.funFact}</p>
-        </div>
-      )}
-
-      <button onClick={onTryAgain}
-        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "10px", borderRadius: 10, border: "1px solid var(--c-border)", background: "var(--c-surface3)", color: "var(--c-text2)", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
-      >
-        <RotateCcw size={14} /> Draw Something Else
-      </button>
     </div>
   );
 }

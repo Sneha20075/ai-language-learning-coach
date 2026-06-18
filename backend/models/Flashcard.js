@@ -67,6 +67,18 @@ const userFlashcardProgressSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    repetitions: {
+      type: Number,
+      default: 0,
+    },
+    easeFactor: {
+      type: Number,
+      default: 2.5,
+    },
+    interval: {
+      type: Number,
+      default: 0,
+    },
     lastReviewed: {
       type: Date,
     },

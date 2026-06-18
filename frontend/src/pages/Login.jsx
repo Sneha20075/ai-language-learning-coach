@@ -2,7 +2,8 @@ import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { LogIn, Mail, Lock, ShieldCheck, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Mail, Lock, ShieldCheck, ArrowRight, Cpu, Fingerprint } from "lucide-react";
 
 function Login() {
   const [email, setEmail]       = useState("");
@@ -14,111 +15,83 @@ function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
-        email,
-        password,
-      });
-      localStorage.setItem("userInfo", JSON.stringify(res.data));
-      toast.success("Welcome back! 👋");
-      navigate("/");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid credentials");
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, { email, password });
+      if (res.data.success) {
+        localStorage.setItem("userInfo", JSON.stringify(res.data.data));
+        toast.success("Identity Verified");
+        navigate("/");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Verification Failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 py-20 animate-fadeUp">
-      <div className="w-full max-w-[480px]">
-        {/* Logo / Header Area */}
-        <div className="text-center mb-10">
-            <div className="w-16 h-16 rounded-2xl bg-acc/10 border border-acc/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(13,255,176,0.1)]">
-                <ShieldCheck size={32} className="text-acc" />
+    <div className="min-h-screen bg-washi flex items-center justify-center p-6 pt-32">
+      <div className="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
+      
+      <motion.div 
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-lg glass-card !p-12 relative z-10"
+      >
+        <div className="text-center mb-12">
+            <div className="w-16 h-16 rounded-2xl bg-ink text-sakura flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-ink/20">
+                <Fingerprint size={32} strokeWidth={2} />
             </div>
-            <h1 className="font-display text-4xl font-bold text-t1 tracking-tight mb-3">
-                Welcome <span className="gradient-text">Back</span>
-            </h1>
-            <p className="text-t2 text-sm">
-                Don't have an account? 
-                <Link to="/signup" className="text-acc hover:underline ml-1 font-medium">Create one for free →</Link>
+            <h1 className="text-4xl font-black text-ink tracking-tighter mb-4">Initialize Access.</h1>
+            <p className="text-[10px] font-black text-ink/40 uppercase tracking-[0.2em]">Secure Authentication Gateway</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-8">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-ink uppercase tracking-widest ml-1">Cognitive Identity (Email)</label>
+            <div className="relative group">
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-ink/20 group-focus-within:text-sakura transition-colors" size={20} />
+                <input
+                    type="email"
+                    required
+                    className="w-full bg-white/50 border-2 border-ink/5 p-5 pl-14 rounded-2xl focus:border-sakura focus:bg-white outline-none text-sm font-bold transition-all placeholder:text-ink/20"
+                    placeholder="name@neural.net"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-ink uppercase tracking-widest ml-1">Access Cipher (Password)</label>
+            <div className="relative group">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-ink/20 group-focus-within:text-sakura transition-colors" size={20} />
+                <input
+                    type="password"
+                    required
+                    className="w-full bg-white/50 border-2 border-ink/5 p-5 pl-14 rounded-2xl focus:border-sakura focus:bg-white outline-none text-sm font-bold transition-all placeholder:text-ink/20"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-premium w-full justify-center py-5 text-lg mt-4"
+          >
+            {loading ? "Verifying..." : "Initialize Dashboard"}
+            {!loading && <ArrowRight size={22} />}
+          </button>
+        </form>
+
+        <div className="mt-12 pt-10 border-t border-ink/5 text-center">
+            <p className="text-sm font-bold text-ink/40">
+                New Identity? <Link to="/signup" className="text-sakura hover:underline ml-2 font-black uppercase tracking-widest text-[10px]">Create Profile</Link>
             </p>
         </div>
-
-        {/* glass-card centered */}
-        <div className="glass-card p-10 relative overflow-hidden group">
-            {/* Subtle Gradient Glow */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-acc/10 rounded-full blur-[80px] group-hover:bg-acc/15 transition-all duration-500"></div>
-            
-            <form onSubmit={handleLogin} className="relative z-10 space-y-6">
-                <div>
-                    <label className="block text-[0.65rem] font-bold text-t3 uppercase tracking-[2px] mb-2.5 ml-1">
-                        Email Address
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-t3">
-                            <Mail size={16} />
-                        </div>
-                        <input
-                            type="email"
-                            required
-                            placeholder="you@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="pl-11"
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <div className="flex justify-between items-center mb-2.5 ml-1">
-                        <label className="block text-[0.65rem] font-bold text-t3 uppercase tracking-[2px]">
-                            Password
-                        </label>
-                        <Link to="#" className="text-[0.65rem] font-bold text-acc hover:underline uppercase tracking-[1px]">
-                            Forgot?
-                        </Link>
-                    </div>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-t3">
-                            <Lock size={16} />
-                        </div>
-                        <input
-                            type="password"
-                            required
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="pl-11"
-                        />
-                    </div>
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-primary w-full py-4 rounded-2xl flex items-center justify-center gap-2 group-hover:shadow-[0_0_30px_rgba(13,255,176,0.3)] transition-all"
-                >
-                    {loading ? "Authenticating..." : (
-                        <>
-                            Sign In to Dashboard
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </>
-                    )}
-                </button>
-
-                <div className="pt-4 flex items-center gap-4">
-                    <div className="h-[1px] flex-1 bg-border"></div>
-                    <span className="text-[0.6rem] font-bold text-t3 uppercase tracking-[2px]">Secured by AI</span>
-                    <div className="h-[1px] flex-1 bg-border"></div>
-                </div>
-            </form>
-        </div>
-        
-        <p className="text-center text-t3 text-[0.7rem] mt-8 uppercase tracking-[1px] font-medium">
-            Protected by Industry Standard Encryption
-        </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

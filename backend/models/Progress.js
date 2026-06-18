@@ -67,6 +67,16 @@ const progressSchema = new mongoose.Schema(
         iconUrl: { type: String },
       },
     ],
+    // Learning Memory: Tracking recurring mistakes
+    pastMistakes: [
+      {
+        error: { type: String },
+        correction: { type: String },
+        explanation: { type: String },
+        occurrenceCount: { type: Number, default: 1 },
+        lastSeen: { type: Date, default: Date.now },
+      },
+    ],
     // Daily activity log for heatmap
     activityLog: [
       {

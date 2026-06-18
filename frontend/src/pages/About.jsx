@@ -1,88 +1,129 @@
+import { motion } from "framer-motion";
+import { Sparkles, Target, Cpu, Users, ChevronRight, Zap } from "lucide-react";
+
 const stats = [
-  { n: "500+", l: "Topics", icon: "📝" },
-  { n: "24/7",  l: "Available", icon: "⏰" },
-  { n: "AI",    l: "Feedback", icon: "🧠" },
-  { n: "Free",  l: "Early Access", icon: "🎁" },
+  { n: "500+", l: "Topics", icon: <Sparkles size={24} className="text-accent" /> },
+  { n: "24/7",  l: "Coaching", icon: <Cpu size={24} className="text-primary" /> },
+  { n: "98%",   l: "Accuracy", icon: <Target size={24} className="text-primary" /> },
+  { n: "Elite", l: "Pedagogy", icon: <Zap size={24} className="text-accent" fill="currentColor" /> },
 ];
 
 const team = [
-  { initials: "JD", name: "John Doe",       role: "Founder & Dev",  color: "var(--c-accent)" },
-  { initials: "AS", name: "Alice Smith",    role: "AI & Research",  color: "var(--c-accent2)" },
-  { initials: "BW", name: "Bob Wilson",     role: "Design & UX",    color: "var(--c-accent3)" },
+  { initials: "JD", name: "John Doe",       role: "Founder & Architect",  color: "#1A237E" },
+  { initials: "AS", name: "Alice Smith",    role: "AI Lead",             color: "#4852D9" },
+  { initials: "BW", name: "Bob Wilson",     role: "Design Lead",         color: "#FFD700" },
 ];
 
 function About() {
   return (
-    <div className="animate-fadeUp min-h-screen flex flex-col items-center justify-center py-24 px-6">
-      <div className="w-full max-w-[900px]">
+    <div className="min-h-screen bg-bg py-32 px-6 relative overflow-hidden">
+      
+      {/* Background Decorations */}
+      <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]"></div>
+      <div className="absolute bottom-[-5%] right-[-5%] w-[40%] h-[40%] rounded-full bg-accent/5 blur-[120px]"></div>
 
-        <div className="text-center mb-16">
-            <div className="pill mb-6">About the project</div>
-            <h1 className="font-display text-[clamp(2.5rem,6vw,5rem)] tracking-tight leading-[0.95] mb-8 text-t1 font-bold italic">
-              BUILT FOR LEARNERS<br />WHO THINK <span className="gradient-text">DEEPER</span>
-            </h1>
-            <p className="text-t2 text-[1.1rem] leading-[1.8] max-w-[600px] mx-auto">
-              Master any language through AI-powered critical thinking, 
-              persuasive writing, and real-time coaching.
-            </p>
+      <div className="max-w-6xl mx-auto relative z-10">
+        {/* Header */}
+        <div className="text-center mb-24">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10 text-primary text-[0.65rem] font-black tracking-widest uppercase mb-8"
+            >
+                <Sparkles size={14} className="text-accent" fill="currentColor" />
+                The LinguaCoach Mission
+            </motion.div>
+            <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="font-display text-6xl md:text-8xl font-black text-primary tracking-tight leading-[0.95] mb-10"
+            >
+                Reimagining How <br />
+                The World <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Communicates.</span>
+            </motion.h1>
+            <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-text-sec text-lg leading-relaxed max-w-2xl mx-auto"
+            >
+                LinguaCoach AI was built to bridge the gap between "knowing words" and "mastering communication." We use advanced AI to help you think, speak, and connect in any language.
+            </motion.p>
         </div>
 
-        <div className="glass-card p-12 mb-16">
-            <div className="grid md:grid-cols-1 gap-10">
-                <div>
-                   <h3 className="text-xl font-bold text-t1 mb-4 flex items-center gap-3">
-                     <span className="w-8 h-8 rounded-lg bg-acc/10 flex items-center justify-center text-acc text-sm">01</span>
-                     Our Vision
-                   </h3>
-                   <p className="text-t2 text-[0.95rem] leading-[1.8] mb-6">
-                     Language is more than just grammar and vocabulary. It's the ability to articulate complex ideas, 
-                     defend positions, and connect emotionally with others. We built this tool to bridge the 
-                     gap between "knowing words" and "mastering communication."
-                   </p>
-                </div>
-                <div>
-                   <h3 className="text-xl font-bold text-t1 mb-4 flex items-center gap-3">
-                     <span className="w-8 h-8 rounded-lg bg-acc2/10 flex items-center justify-center text-acc2 text-sm">02</span>
-                     AI Powered
-                   </h3>
-                   <p className="text-t2 text-[0.95rem] leading-[1.8]">
-                     Using state-of-the-art models like Gemini 1.5 Flash, our coach analyzes not just your 
-                     syntax, but the logical flow and persuasive impact of your speech. It's like having 
-                      a professional rhetoric coach in your pocket 24/7.
-                   </p>
-                </div>
-            </div>
+        {/* Vision Cards */}
+        <div className="grid md:grid-cols-2 gap-8 mb-32">
+            <motion.div 
+                whileHover={{ y: -5 }}
+                className="bg-white border border-border p-12 rounded-[2.5rem] shadow-2xl shadow-primary/5"
+            >
+               <h3 className="text-2xl font-black text-primary mb-6 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-accent text-sm">01</div>
+                 The Vision
+               </h3>
+               <p className="text-text-sec leading-relaxed text-lg">
+                 Language is more than just grammar. It's the ability to articulate complex ideas and connect emotionally. Our vision is to provide every learner with an elite personal coach that's available 24/7.
+               </p>
+            </motion.div>
+            <motion.div 
+                whileHover={{ y: -5 }}
+                className="bg-white border border-border p-12 rounded-[2.5rem] shadow-2xl shadow-primary/5"
+            >
+               <h3 className="text-2xl font-black text-primary mb-6 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-accent text-sm">02</div>
+                 The Technology
+               </h3>
+               <p className="text-text-sec leading-relaxed text-lg">
+                 Powered by Gemini 1.5 Flash, our engine analyzes your logical flow, syntax, and persuasive impact. We don't just correct your errors; we help you refine your voice in any language you choose.
+               </p>
+            </motion.div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 my-20">
-          {stats.map((s) => (
-            <div key={s.l} className="glass-card py-10 px-4 text-center group hover:bg-glow transition-all">
-              <div className="text-[2rem] mb-3 group-hover:scale-110 transition-transform">{s.icon}</div>
-              <div className="font-display text-[2.5rem] text-t1 tracking-tight font-bold italic">{s.n}</div>
-              <div className="text-[0.65rem] text-t3 uppercase tracking-[2px] mt-2 font-bold">{s.l}</div>
-            </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-32">
+          {stats.map((s, i) => (
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.1 }}
+                key={s.l} 
+                className="bg-white border border-border p-10 rounded-[2rem] text-center shadow-lg hover:shadow-primary/10 transition-all"
+            >
+              <div className="w-12 h-12 rounded-xl bg-bg flex items-center justify-center mx-auto mb-6">
+                {s.icon}
+              </div>
+              <div className="text-4xl font-black text-primary tracking-tight mb-2">{s.n}</div>
+              <div className="text-[0.65rem] text-text-sec uppercase tracking-[0.2em] font-black">{s.l}</div>
+            </motion.div>
           ))}
         </div>
 
-        {/* Team Area Centralized */}
-        <div className="text-center mb-12">
-            <h3 className="font-display text-[2rem] tracking-tight mb-2 text-t1 font-bold italic">Meet the Architects</h3>
-            <p className="text-t3 text-sm">The minds behind the AI Language Coach</p>
+        {/* Team Area */}
+        <div className="text-center mb-16">
+            <h3 className="font-display text-4xl font-black text-primary tracking-tight mb-4">Meet the Architects</h3>
+            <p className="text-text-sec font-medium">The minds building the future of language learning.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {team.map((t) => (
-            <div key={t.initials} className="glass-card p-8 text-center group">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {team.map((t, i) => (
+            <motion.div 
+                whileHover={{ y: -5 }}
+                key={t.name} 
+                className="bg-white border border-border p-10 rounded-[2.5rem] text-center shadow-xl shadow-primary/5 group"
+            >
               <div 
-                className="w-16 h-16 rounded-2xl flex-shrink-0 mx-auto mb-6 flex items-center justify-center text-lg font-bold transition-all group-hover:rotate-6"
-                style={{ background: `${t.color}15`, color: t.color, border: `1px solid ${t.color}30` }}
+                className="w-20 h-20 rounded-2xl mx-auto mb-8 flex items-center justify-center text-xl font-black transition-all group-hover:rotate-6 shadow-lg shadow-primary/10"
+                style={{ backgroundColor: `${t.color}10`, color: t.color, border: `1px solid ${t.color}20` }}
               >
                 {t.initials}
               </div>
-              <h4 className="text-[1rem] font-bold text-t1 mb-1">{t.name}</h4>
-              <p className="text-[0.75rem] text-t3 uppercase tracking-[1px] font-bold">{t.role}</p>
-            </div>
+              <h4 className="text-xl font-bold text-primary mb-2">{t.name}</h4>
+              <p className="text-[0.65rem] text-text-sec uppercase tracking-[0.2em] font-black mb-6">{t.role}</p>
+              <div className="flex justify-center">
+                 <button className="text-primary hover:text-accent transition-colors"><ChevronRight size={20} /></button>
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>

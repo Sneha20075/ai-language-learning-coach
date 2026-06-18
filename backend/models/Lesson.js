@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Schema for the "Learn" section
+// Schema for the "Learn" section — Updated for Elite Daily Lessons
 const lessonSchema = new mongoose.Schema(
   {
     title: {
@@ -19,9 +19,31 @@ const lessonSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['Grammar', 'Vocabulary', 'Pronunciation', 'Culture', 'Phrases'],
-      default: 'Grammar',
+      default: 'Daily Lesson',
     },
+    wordOfTheDay: {
+      word: { type: String },
+      translation: { type: String },
+      pronunciation: { type: String }
+    },
+    grammarTip: {
+      title: { type: String },
+      explanation: { type: String }
+    },
+    practiceDialogue: [
+      {
+        speaker: { type: String },
+        text: { type: String },
+        translation: { type: String }
+      }
+    ],
+    miniQuiz: [
+      {
+        question: { type: String },
+        options: [{ type: String }],
+        correctAnswer: { type: String }
+      }
+    ],
     vocabulary: [
       {
         word: { type: String },
@@ -35,23 +57,14 @@ const lessonSchema = new mongoose.Schema(
     },
     xpReward: {
       type: Number,
-      default: 10,
-    },
-    order: {
-      type: Number,
-      default: 0,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+      default: 20,
+    }
   },
   {
     timestamps: true,
   }
 );
 
-// Track which lessons a user has completed
 const userLessonProgressSchema = new mongoose.Schema(
   {
     user: {

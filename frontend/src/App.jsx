@@ -13,7 +13,11 @@ import Learn from "./pages/Learn";
 import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
 import Progress from "./pages/Progress";
+import Leaderboard from "./pages/Leaderboard";
+import Profile from "./pages/Profile";
 import { ToastContainer } from "react-toastify";
+import FloatingAI from "./components/FloatingAI";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -32,8 +36,12 @@ function App() {
         <Route path="/flashcards" element={<Flashcards />} />
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/progress" element={<Progress />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
-      < ToastContainer />
+      <ToastContainer />
+      <FloatingAI />
+      <Footer />
     </BrowserRouter>
   );
 }
