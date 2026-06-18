@@ -158,8 +158,11 @@ Persuasion: [0-100]
                   const expMatch = message.match(/💡 Explanation:\s*(.*)/i);
                   if (corrMatch) {
                     await Progress.findOneAndUpdate(
-                      { user: userId, targetLanguage: targetLang },
-                      { $push: { pastMistakes: { error: prompt, correction: corrMatch[1], explanation: expMatch ? expMatch[1] : "" } } },
+                      { user: userId },
+                      { 
+                        $push: { pastMistakes: { error: prompt, correction: corrMatch[1], explanation: expMatch ? expMatch[1] : "" } },
+                        $setOnInsert: { targetLanguage: targetLang }
+                      },
                       { upsert: true }
                     );
                   }

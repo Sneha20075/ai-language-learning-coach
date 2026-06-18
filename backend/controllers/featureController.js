@@ -364,9 +364,15 @@ const reviewFlashcard = async (req, res) => {
     );
 
     // Update global progress stats
+    const flashcard = await Flashcard.findById(cardId);
+    const language = flashcard ? flashcard.language : 'Spanish';
     await Progress.findOneAndUpdate(
       { user: userId },
-      { $inc: { "stats.flashcardsReviewed": 1, totalXP: 5 } }
+      { 
+        $inc: { "stats.flashcardsReviewed": 1, totalXP: 5 },
+        $setOnInsert: { targetLanguage: language }
+      },
+      { upsert: true }
     );
 
     // Sync with User model for leaderboard
@@ -425,12 +431,15 @@ const completeLesson = async (req, res) => {
     );
 
     // Update global progress stats
+    const lesson = await Lesson.findById(lessonId);
+    const language = lesson ? lesson.language : 'Spanish';
     const xpEarned = 20;
     await Progress.findOneAndUpdate(
       { user: userId },
       { 
         $inc: { "stats.lessonsCompleted": 1, totalXP: xpEarned },
-        $set: { lastStudyDate: new Date() }
+        $set: { lastStudyDate: new Date() },
+        $setOnInsert: { targetLanguage: language }
       },
       { upsert: true }
     );
